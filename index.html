@@ -1,0 +1,4064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Open Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  /* Student palette — warm ivory */
+  --s-bg: #f5f2ed;
+  --s-surface: #faf8f4;
+  --s-border: #e2ddd6;
+  --s-ink: #1c2026;
+  --s-ink-soft: #4a5260;
+  --s-muted: #8c9099;
+  --s-blue: #3d5a8a;
+  --s-blue-pale: #eaeff7;
+  --s-blue-mid: #7a9bc4;
+
+  /* Teacher palette — deep slate */
+  --t-bg: #141820;
+  --t-surface: #1e2330;
+  --t-surface-2: #252c3d;
+  --t-border: #2a3245;
+  --t-ink: #e8ecf2;
+  --t-ink-soft: #8a97ad;
+  --t-muted: #4a5570;
+  --t-accent: #4a7fd4;
+  --t-accent-pale: #1a2d4a;
+  --t-working: #3aaa6e;
+  --t-working-pale: #0f2a1e;
+  --t-friction: #e07050;
+  --t-friction-pale: #2a1a14;
+  --t-signal: #9b7fd4;
+  --t-signal-pale: #1e1530;
+
+  /* Shared */
+  --green: #3aaa6e;
+  --amber: #d4890a;
+  --danger: #c0392b;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  min-height: 100vh;
+  overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════════════
+   SCREEN SYSTEM
+═══════════════════════════════════════════════ */
+.screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  padding-bottom: 140px;
+}
+.screen.active {
+  display: flex;
+  animation: fadeUp .32s cubic-bezier(.2, 0, .1, 1);
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Student screens */
+.s-screen { background: var(--s-bg); color: var(--s-ink); }
+
+/* Teacher screens */
+.t-screen { background: var(--t-bg); color: var(--t-ink); }
+
+/* ═══════════════════════════════════════════════
+   WORDMARK
+═══════════════════════════════════════════════ */
+.wordmark {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.wordmark-s { font-size: 18px; color: var(--s-muted); }
+.wordmark-t { font-size: 18px; color: var(--t-muted); }
+
+/* ═══════════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════════ */
+.btn {
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn:active { transform: scale(.97); }
+
+.btn-primary-s {
+  background: var(--s-ink);
+  color: white;
+  padding: 15px 24px;
+  font-size: 15px;
+  width: 100%;
+  max-width: 340px;
+  border-radius: var(--radius);
+}
+.btn-primary-s:hover { background: var(--s-blue); }
+
+.btn-primary-t {
+  background: var(--t-accent);
+  color: white;
+  padding: 14px 20px;
+  font-size: 14px;
+  width: 100%;
+  border-radius: var(--radius);
+}
+.btn-primary-t:hover { background: #3a6abf; }
+
+.btn-ghost-t {
+  background: transparent;
+  border: 1px solid var(--t-border);
+  color: var(--t-ink-soft);
+  padding: 9px 16px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+.btn-ghost-t:hover { border-color: var(--t-accent); color: var(--t-accent); }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(192,57,43,.4);
+  color: #e07060;
+  padding: 12px 16px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+.btn-danger:hover { background: rgba(192,57,43,.1); }
+
+/* ═══════════════════════════════════════════════
+   STUDENT: OPENING
+═══════════════════════════════════════════════ */
+#sc-s-open {
+  padding: 0;
+}
+.open-nav {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--s-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.open-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+.open-eyebrow {
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--s-blue);
+  font-weight: 500;
+  margin-bottom: 18px;
+  background: var(--s-blue-pale);
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+.open-h {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--s-ink);
+  margin-bottom: 14px;
+}
+.open-sub {
+  font-size: 14px;
+  color: var(--s-ink-soft);
+  line-height: 1.8;
+  margin-bottom: 28px;
+  max-width: 340px;
+}
+.anon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--s-surface);
+  border: 1px solid var(--s-border);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--s-ink-soft);
+  margin-bottom: 28px;
+}
+.anon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+/* ═══════════════════════════════════════════════
+   STUDENT: PROMPTS
+═══════════════════════════════════════════════ */
+#sc-s-prompt { padding: 0; }
+
+.prompt-nav-bar {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--s-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--s-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.progress-track {
+  flex: 1;
+  height: 2px;
+  background: var(--s-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--s-blue);
+  border-radius: 2px;
+  transition: width .4s cubic-bezier(.4, 0, .2, 1);
+}
+.prompt-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 24px 16px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+.q-counter {
+  font-size: 11px;
+  color: var(--s-blue);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.prompt-question {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: clamp(19px, 4vw, 25px);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--s-ink);
+  margin-bottom: 8px;
+}
+.prompt-hint {
+  font-size: 13px;
+  color: var(--s-muted);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--s-surface);
+  border: 1.5px solid var(--s-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--s-ink);
+  line-height: 1.75;
+  resize: none;
+  outline: none;
+  transition: border-color .2s;
+}
+.prompt-textarea:focus { border-color: var(--s-blue-mid); }
+.prompt-textarea::placeholder { color: rgba(140,144,153,.5); }
+
+.skip-link {
+  font-size: 12px;
+  color: var(--s-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  align-self: center;
+  margin-top: 12px;
+}
+
+.prompt-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 24px 24px;
+  background: var(--s-bg);
+  border-top: 1px solid var(--s-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+}
+.q-label { font-size: 12px; color: var(--s-muted); }
+.next-btn {
+  background: var(--s-ink);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 22px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .18s;
+}
+.next-btn:hover { background: var(--s-blue); }
+.next-btn:active { transform: scale(.97); }
+
+/* ═══════════════════════════════════════════════
+   STUDENT: SAFETY
+═══════════════════════════════════════════════ */
+#sc-s-safety {
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+.safety-card {
+  background: var(--s-surface);
+  border: 1.5px solid var(--s-blue-mid);
+  border-radius: var(--radius-lg);
+  padding: 30px 24px;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+}
+.safety-icon { font-size: 32px; margin-bottom: 16px; }
+.safety-h {
+  font-family: 'Lora', serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.safety-body {
+  font-size: 13px;
+  color: var(--s-ink-soft);
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+.helpline-box {
+  background: var(--s-blue-pale);
+  border: 1px solid rgba(61,90,138,.2);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.helpline-label { font-size: 11px; color: var(--s-blue); font-weight: 500; margin-bottom: 4px; }
+.helpline-number { font-size: 18px; font-weight: 500; color: var(--s-blue); display: block; }
+.safety-footer { font-size: 12px; color: var(--s-muted); line-height: 1.7; }
+
+.safety-continue {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--s-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════
+   STUDENT: PROCESSING
+═══════════════════════════════════════════════ */
+#sc-s-proc {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+.proc-ring {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--s-border);
+  border-top-color: var(--s-blue);
+  border-radius: 50%;
+  animation: spin .85s linear infinite;
+  margin: 0 auto 24px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.proc-h {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+.proc-sub { font-size: 13px; color: var(--s-muted); line-height: 1.65; }
+
+/* ═══════════════════════════════════════════════
+   STUDENT: DONE
+═══════════════════════════════════════════════ */
+#sc-s-done {
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+.done-inner { max-width: 320px; width: 100%; }
+.done-icon { font-size: 40px; margin-bottom: 20px; }
+.done-h {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: clamp(22px, 5vw, 28px);
+  font-weight: 400;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.done-sub {
+  font-size: 13px;
+  color: var(--s-ink-soft);
+  line-height: 1.8;
+}
+
+/* ═══════════════════════════════════════════════
+   STUDENT: ABUSE REDIRECT
+═══════════════════════════════════════════════ */
+#sc-s-abuse {
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+.abuse-card {
+  background: var(--s-surface);
+  border: 1.5px solid var(--s-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 22px;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+}
+.abuse-icon { font-size: 28px; margin-bottom: 14px; }
+.abuse-h {
+  font-family: 'Lora', serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+.abuse-body {
+  font-size: 13px;
+  color: var(--s-ink-soft);
+  line-height: 1.75;
+  margin-bottom: 20px;
+}
+.abuse-rephrase {
+  background: var(--s-ink);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.abuse-skip {
+  font-size: 12px;
+  color: var(--s-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════
+   TEACHER: LOGIN
+═══════════════════════════════════════════════ */
+#sc-t-login {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  min-height: 100vh;
+}
+.login-inner {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+.login-wordmark {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--t-ink);
+  margin-bottom: 6px;
+}
+.login-tagline {
+  font-size: 13px;
+  color: var(--t-muted);
+  margin-bottom: 48px;
+  line-height: 1.65;
+}
+.login-card {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  margin-bottom: 16px;
+}
+.login-h {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t-ink);
+  margin-bottom: 6px;
+}
+.login-sub {
+  font-size: 12px;
+  color: var(--t-ink-soft);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: white;
+  color: #1c2026;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: opacity .18s;
+}
+.google-btn:hover { opacity: .92; }
+.google-btn:active { transform: scale(.97); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--t-muted);
+  font-size: 11px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--t-border);
+}
+
+.phone-input-wrap {
+  position: relative;
+}
+.phone-input {
+  width: 100%;
+  background: var(--t-bg);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: var(--t-ink);
+  outline: none;
+  transition: border-color .2s;
+}
+.phone-input:focus { border-color: var(--t-accent); }
+.phone-input::placeholder { color: var(--t-muted); }
+.phone-btn {
+  width: 100%;
+  background: var(--t-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background .18s;
+}
+.phone-btn:hover { background: #3a6abf; }
+
+.login-note {
+  font-size: 11px;
+  color: var(--t-muted);
+  line-height: 1.65;
+}
+
+/* ═══════════════════════════════════════════════
+   TEACHER: HOME
+═══════════════════════════════════════════════ */
+#sc-t-home { padding: 0; }
+
+.t-topbar {
+  background: var(--t-bg);
+  border-bottom: 1px solid var(--t-border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.compare-btn {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: var(--t-ink-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .18s;
+}
+.compare-btn:hover { border-color: var(--t-accent); color: var(--t-accent); }
+.compare-btn.disabled { opacity: .4; pointer-events: none; }
+
+.add-group-btn {
+  background: var(--t-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background .18s;
+}
+.add-group-btn:hover { background: #3a6abf; }
+.add-group-btn.disabled { opacity: .4; pointer-events: none; }
+
+.home-body {
+  padding: 16px 18px 20px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.home-label {
+  font-size: 11px;
+  color: var(--t-muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.group-list { display: flex; flex-direction: column; gap: 10px; }
+
+.group-card {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all .2s;
+  position: relative;
+}
+.group-card:hover { border-color: var(--t-accent); background: var(--t-surface-2); }
+.group-card:active { transform: scale(.99); }
+
+.group-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--t-accent-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.group-info { flex: 1; min-width: 0; }
+.group-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t-ink);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.group-meta { font-size: 11px; color: var(--t-ink-soft); line-height: 1.5; }
+
+.status-pill {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  border-radius: 20px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.status-pill.idle { background: var(--t-surface-2); color: var(--t-muted); }
+.status-pill.active { background: rgba(58,170,110,.15); color: var(--green); }
+.status-pill.collecting { background: rgba(212,137,10,.15); color: var(--amber); }
+.status-pill.closed { background: rgba(74,127,212,.12); color: var(--t-accent); }
+.status-pill.no-signal { background: var(--t-surface-2); color: var(--t-muted); }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--t-muted);
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+.empty-h { font-size: 15px; color: var(--t-ink-soft); margin-bottom: 6px; font-weight: 400; }
+.empty-sub { font-size: 13px; line-height: 1.65; }
+
+/* ═══════════════════════════════════════════════
+   TEACHER: GROUP DASHBOARD
+═══════════════════════════════════════════════ */
+#sc-t-dash { padding: 0; }
+
+.dash-topbar {
+  background: var(--t-bg);
+  border-bottom: 1px solid var(--t-border);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.dash-session-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--t-ink-soft);
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.idle { background: var(--t-muted); }
+.status-dot.active { background: var(--green); animation: pulse 2s infinite; }
+.status-dot.collecting { background: var(--amber); animation: pulse 1.5s infinite; }
+.status-dot.closed { background: var(--t-accent); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+.dash-body {
+  padding: 16px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dash-group-name {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--t-ink);
+  padding: 4px 0;
+}
+.dash-session-info {
+  font-size: 12px;
+  color: var(--t-muted);
+  margin-top: 2px;
+}
+
+/* Response counter card */
+.counter-card {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.counter-number {
+  font-family: 'Lora', serif;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--t-ink);
+  flex-shrink: 0;
+  min-width: 50px;
+}
+.counter-info { flex: 1; }
+.counter-label { font-size: 13px; color: var(--t-ink); margin-bottom: 3px; }
+.counter-sub { font-size: 11px; color: var(--t-ink-soft); line-height: 1.5; margin-bottom: 8px; }
+.counter-track {
+  height: 3px;
+  background: var(--t-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.counter-fill {
+  height: 100%;
+  background: var(--t-accent);
+  border-radius: 3px;
+  transition: width .6s cubic-bezier(.4, 0, .2, 1);
+}
+.counter-fill.threshold-met { background: var(--green); }
+
+/* Session actions */
+.session-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.action-row {
+  display: flex;
+  gap: 10px;
+}
+.action-row .btn { flex: 1; }
+
+.btn-start-session {
+  background: var(--t-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: background .18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn-start-session:hover { background: #3a6abf; }
+
+.btn-share-link {
+  background: var(--t-surface);
+  color: var(--t-ink);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  flex: 1;
+  transition: all .18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn-share-link:hover { border-color: var(--t-accent); color: var(--t-accent); }
+
+.btn-close-link {
+  background: rgba(224,112,80,.1);
+  color: var(--t-friction);
+  border: 1px solid rgba(224,112,80,.25);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  flex: 1;
+  transition: all .18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn-close-link:hover { background: rgba(224,112,80,.18); }
+
+.btn-close-session {
+  background: transparent;
+  color: var(--t-muted);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  width: 100%;
+  transition: all .18s;
+  margin-top: 4px;
+}
+.btn-close-session:hover { color: var(--danger); border-color: rgba(192,57,43,.4); }
+
+/* Synthesis card */
+.synth-card {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.synth-header {
+  background: var(--t-surface-2);
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--t-border);
+}
+.synth-title {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--t-ink-soft);
+  font-weight: 400;
+}
+.synth-meta {
+  font-size: 11px;
+  color: var(--t-muted);
+}
+.synth-body { padding: 16px; }
+
+.synth-waiting {
+  text-align: center;
+  padding: 24px 0;
+}
+.wait-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--t-border);
+  border-top-color: var(--t-accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 10px;
+  display: none;
+}
+.wait-text { font-size: 13px; color: var(--t-muted); line-height: 1.65; }
+.threshold-note {
+  font-size: 11px;
+  color: var(--t-muted);
+  background: var(--t-bg);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+.synth-sections { display: none; flex-direction: column; gap: 12px; }
+.synth-sections.visible {
+  display: flex;
+  animation: fadeUp .4s ease;
+}
+
+.synth-section {
+  border-radius: var(--radius-sm);
+  padding: 14px 15px;
+}
+.synth-section.working {
+  background: var(--t-working-pale);
+  border-left: 3px solid var(--t-working);
+}
+.synth-section.friction {
+  background: var(--t-friction-pale);
+  border-left: 3px solid var(--t-friction);
+}
+.synth-section.signal {
+  background: var(--t-signal-pale);
+  border-left: 3px solid var(--t-signal);
+}
+.section-tag {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+.working .section-tag { color: var(--t-working); }
+.friction .section-tag { color: var(--t-friction); }
+.signal .section-tag { color: var(--t-signal); }
+
+.section-text {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.85;
+  color: var(--t-ink);
+}
+
+.synth-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--t-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.listen-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: var(--t-ink-soft);
+  cursor: pointer;
+  transition: all .18s;
+}
+.listen-btn:hover { border-color: var(--t-accent); color: var(--t-accent); }
+
+.insight-link {
+  font-size: 12px;
+  color: var(--t-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+}
+.insight-link:hover { opacity: .75; }
+
+/* Actionable insight panel */
+.insight-panel {
+  background: var(--t-accent-pale);
+  border: 1px solid rgba(74,127,212,.25);
+  border-radius: var(--radius-sm);
+  padding: 14px 15px;
+  margin-top: 12px;
+  display: none;
+}
+.insight-panel.visible { display: block; animation: fadeUp .3s ease; }
+.insight-tag {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--t-accent);
+  margin-bottom: 7px;
+}
+.insight-text {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--t-ink);
+}
+.insight-loading {
+  font-size: 12px;
+  color: var(--t-ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-spinner {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--t-border);
+  border-top-color: var(--t-accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════
+   TEACHER: PREVIOUS SESSIONS TIMELINE
+═══════════════════════════════════════════════ */
+.timeline-section {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.timeline-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background .18s;
+}
+.timeline-header:hover { background: var(--t-surface-2); }
+.timeline-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--t-ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeline-chevron {
+  font-size: 12px;
+  color: var(--t-muted);
+  transition: transform .25s;
+}
+.timeline-chevron.open { transform: rotate(180deg); }
+
+.timeline-list {
+  display: none;
+  border-top: 1px solid var(--t-border);
+}
+.timeline-list.open { display: block; }
+
+.timeline-entry {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--t-border);
+  cursor: pointer;
+  transition: background .18s;
+}
+.timeline-entry:last-child { border-bottom: none; }
+.timeline-entry:hover { background: var(--t-surface-2); }
+
+.entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+.entry-date { font-size: 12px; font-weight: 500; color: var(--t-ink); }
+.entry-rate { font-size: 11px; color: var(--t-ink-soft); }
+.entry-preview {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--t-muted);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entry-no-signal {
+  font-size: 11px;
+  color: var(--t-muted);
+  font-style: italic;
+}
+
+/* Expanded session view */
+.entry-expanded {
+  display: none;
+  padding: 12px 0 4px;
+}
+.entry-expanded.open { display: block; animation: fadeUp .25s ease; }
+.entry-section {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.entry-section.working { background: var(--t-working-pale); border-left: 2px solid var(--t-working); }
+.entry-section.friction { background: var(--t-friction-pale); border-left: 2px solid var(--t-friction); }
+.entry-section.signal { background: var(--t-signal-pale); border-left: 2px solid var(--t-signal); }
+.entry-section-tag {
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.working .entry-section-tag { color: var(--t-working); }
+.friction .entry-section-tag { color: var(--t-friction); }
+.signal .entry-section-tag { color: var(--t-signal); }
+.entry-section-text {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--t-ink);
+}
+
+/* ═══════════════════════════════════════════════
+   TEACHER: COMPARE VIEW
+═══════════════════════════════════════════════ */
+#sc-t-compare { padding: 0; }
+
+.compare-body {
+  padding: 16px 18px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.compare-intro {
+  font-size: 12px;
+  color: var(--t-muted);
+  line-height: 1.65;
+  padding: 2px 0;
+}
+
+.compare-card {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.compare-card-header {
+  padding: 13px 15px;
+  background: var(--t-surface-2);
+  border-bottom: 1px solid var(--t-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.compare-group-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t-ink);
+}
+.compare-date { font-size: 11px; color: var(--t-muted); }
+
+.compare-stats {
+  display: flex;
+  gap: 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--t-border);
+}
+.compare-stat { flex: 1; text-align: center; }
+.stat-value { font-size: 18px; font-weight: 500; color: var(--t-ink); margin-bottom: 2px; }
+.stat-label { font-size: 10px; color: var(--t-muted); text-transform: uppercase; letter-spacing: .05em; }
+
+.signal-strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.signal-strength.tentative { background: rgba(212,137,10,.12); color: var(--amber); }
+.signal-strength.moderate { background: rgba(74,127,212,.12); color: var(--t-accent); }
+.signal-strength.strong { background: rgba(58,170,110,.12); color: var(--green); }
+
+.compare-previews { padding: 12px 15px; display: flex; flex-direction: column; gap: 8px; }
+.preview-row { display: flex; gap: 8px; align-items: flex-start; }
+.preview-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.preview-dot.working { background: var(--t-working); }
+.preview-dot.friction { background: var(--t-friction); }
+.preview-text { font-size: 12px; color: var(--t-ink-soft); line-height: 1.6; }
+.preview-label { font-size: 10px; color: var(--t-muted); font-weight: 500; margin-right: 4px; }
+
+.compare-no-signal {
+  padding: 20px 15px;
+  text-align: center;
+  color: var(--t-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 200;
+  align-items: flex-end;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+
+.modal-sheet {
+  background: var(--t-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 22px 40px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  animation: slideUp .28s cubic-bezier(.2, 0, .1, 1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.modal-handle {
+  width: 32px;
+  height: 3px;
+  background: var(--t-border);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-h {
+  font-family: 'Lora', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--t-ink);
+  margin-bottom: 5px;
+}
+.modal-sub {
+  font-size: 13px;
+  color: var(--t-muted);
+  margin-bottom: 22px;
+  line-height: 1.65;
+}
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 10px;
+  color: var(--t-muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.field input, .field select {
+  width: 100%;
+  background: var(--t-bg);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: var(--t-ink);
+  outline: none;
+  transition: border-color .2s;
+  appearance: none;
+}
+.field input:focus, .field select:focus { border-color: var(--t-accent); }
+.field input::placeholder { color: var(--t-muted); }
+
+.err {
+  font-size: 12px;
+  color: #e07060;
+  background: rgba(192,57,43,.1);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  margin-top: 10px;
+  display: none;
+}
+.modal-cancel {
+  font-size: 13px;
+  color: var(--t-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  text-align: center;
+  display: block;
+  margin-top: 13px;
+}
+
+/* Confirmation modal */
+.confirm-sheet {
+  background: var(--t-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 28px 22px 40px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  animation: slideUp .28s cubic-bezier(.2, 0, .1, 1);
+  text-align: center;
+}
+.confirm-icon { font-size: 28px; margin-bottom: 14px; }
+.confirm-h {
+  font-family: 'Lora', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--t-ink);
+  margin-bottom: 8px;
+}
+.confirm-body {
+  font-size: 13px;
+  color: var(--t-muted);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.confirm-actions { display: flex; flex-direction: column; gap: 10px; }
+
+/* Session setup modal */
+.session-setup-note {
+  font-size: 12px;
+  color: var(--t-muted);
+  background: var(--t-accent-pale);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  margin-bottom: 18px;
+  line-height: 1.6;
+  border: 1px solid rgba(74,127,212,.2);
+}
+
+/* ═══════════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+
+.compare-section-header {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--t-muted);
+  padding: 4px 2px;
+  margin-bottom: 8px;
+}
+.compare-participation-block {
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.participation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.participation-name {
+  font-size: 12px;
+  color: var(--t-ink-soft);
+  width: 130px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.participation-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--t-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.participation-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s ease;
+}
+.participation-pct {
+  font-size: 12px;
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--t-border); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════
+   ENHANCED ANIMATIONS & MICRO-INTERACTIONS
+═══════════════════════════════════════════════ */
+
+/* Smooth page transitions */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Synthesis sections fade in one by one */
+@keyframes synthesisReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Active session glow effect */
+@keyframes sessionGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(58, 170, 110, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(58, 170, 110, 0.1);
+  }
+}
+
+/* Participation bar fill animation */
+@keyframes barFill {
+  from {
+    width: 0;
+  }
+  to {
+    width: var(--fill-width, 100%);
+  }
+}
+
+/* Button press feedback */
+@keyframes buttonPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* Pulse for active indicators */
+@keyframes activePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Enhanced screen transitions */
+.screen.active {
+  animation: fadeUp 0.32s cubic-bezier(.2, 0, .1, 1), pageEnter 0.4s ease-out;
+}
+
+/* Enhanced button interactions */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn:active {
+  animation: buttonPress 0.2s ease-out;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced card interactions */
+.group-card {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.group-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Active session indicator - ALIVE */
+.group-card.active-session {
+  border-color: var(--green);
+  background: linear-gradient(135deg, var(--t-surface) 0%, rgba(58, 170, 110, 0.05) 100%);
+  animation: sessionGlow 3s ease-in-out infinite;
+}
+
+.group-card.active-session::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: activePulse 2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(58, 170, 110, 0.6);
+}
+
+/* Status pill enhancements */
+.status-pill {
+  transition: all 0.3s ease;
+}
+
+.status-pill.active {
+  animation: activePulse 2s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(58, 170, 110, 0.3);
+}
+
+/* Counter card visual enhancement */
+.counter-fill {
+  background: linear-gradient(90deg, var(--t-accent), var(--green));
+  box-shadow: 0 0 12px rgba(74, 127, 212, 0.4);
+  animation: barFill 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.counter-fill.threshold-met {
+  background: linear-gradient(90deg, var(--green), #2ecc71);
+  box-shadow: 0 0 16px rgba(58, 170, 110, 0.5);
+}
+
+/* Participation bar - STRIKING */
+.participation-bar {
+  background: linear-gradient(90deg, var(--t-accent), var(--green));
+  box-shadow: 0 2px 8px rgba(74, 127, 212, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.participation-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Student opening screen - WARMTH */
+.open-body {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes studentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.open-eyebrow {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+.open-h {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+.open-sub {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+}
+
+.anon-badge {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
+}
+
+.btn-primary-s {
+  animation: studentEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+}
+
+/* Synthesis reveal - STAGGERED */
+.synthesis-section {
+  opacity: 0;
+  animation: synthesisReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.synthesis-working {
+  animation-delay: 0s;
+}
+
+.synthesis-friction {
+  animation-delay: 0.2s;
+}
+
+.synthesis-signal {
+  animation-delay: 0.4s;
+}
+
+/* Enhanced input focus states */
+.prompt-textarea:focus {
+  border-color: var(--s-blue-mid);
+  box-shadow: 0 0 12px rgba(61, 90, 138, 0.2);
+  transition: all 0.3s ease;
+}
+
+.phone-input:focus {
+  border-color: var(--t-accent);
+  box-shadow: 0 0 12px rgba(74, 127, 212, 0.2);
+  transition: all 0.3s ease;
+}
+
+/* Modal entrance animation */
+.modal-overlay {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-sheet, .confirm-sheet {
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading state animation */
+.proc-ring {
+  box-shadow: 0 0 12px rgba(61, 90, 138, 0.2);
+}
+
+/* Enhanced link hover states */
+.skip-link, .safety-continue, .abuse-skip, .modal-cancel {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.skip-link:hover, .safety-continue:hover, .abuse-skip:hover, .modal-cancel:hover {
+  color: var(--s-blue);
+  text-decoration-thickness: 2px;
+}
+
+/* Compare button active state */
+.compare-btn.active {
+  border-color: var(--t-accent);
+  color: var(--t-accent);
+  background: rgba(74, 127, 212, 0.1);
+}
+
+/* Add group button hover */
+.add-group-btn:hover {
+  background: #3a6abf;
+  box-shadow: 0 4px 12px rgba(74, 127, 212, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Enhanced empty state */
+.empty-state {
+  animation: fadeIn 0.4s ease-out 0.2s both;
+}
+
+/* Smooth transitions for interactive elements */
+.btn, .group-card, .modal-sheet, .confirm-sheet {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 0.3s ease,
+              border-color 0.3s ease,
+              background 0.3s ease;
+}
+
+
+</style>
+
+
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     STUDENT SCREENS
+═══════════════════════════════════════ -->
+
+<!-- S1: OPENING -->
+<div class="screen s-screen" id="sc-s-open">
+  <div class="open-nav">
+    <div class="wordmark wordmark-s">Open Signal</div>
+  </div>
+  <div class="open-body">
+    <div class="open-eyebrow">Your voice, protected</div>
+    <h1 class="open-h">"This is your space to say what you actually think."</h1>
+    <p class="open-sub">What's working. What's confusing. How you're feeling about the subject. Your teacher receives the pattern — never your words, never your name.</p>
+    <div class="anon-badge">
+      <div class="anon-dot"></div>
+      Completely anonymous — your name is never attached
+    </div>
+    <button class="btn btn-primary-s" onclick="startPrompts()">Share what's true →</button>
+  </div>
+</div>
+
+<!-- S2: PROMPTS -->
+<div class="screen s-screen" id="sc-s-prompt">
+  <div class="prompt-nav-bar">
+    <div class="wordmark wordmark-s">Open Signal</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="prompt-body">
+    <div class="q-counter" id="q-counter">Question 1 of 4</div>
+    <p class="prompt-question" id="prompt-q"></p>
+    <p class="prompt-hint" id="prompt-hint"></p>
+    <textarea class="prompt-textarea" id="prompt-ta" rows="4" placeholder=""></textarea>
+    <span class="skip-link" onclick="skipPrompt()">Skip this one</span>
+  </div>
+  <div class="prompt-footer">
+    <span class="q-label" id="q-label">1 / 4</span>
+    <button class="next-btn" id="next-btn" onclick="nextPrompt()">Next →</button>
+  </div>
+</div>
+
+<!-- S3: SAFETY -->
+<div class="screen s-screen" id="sc-s-safety">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:28px 22px;">
+    <div class="safety-card">
+      <div class="safety-icon">🤝</div>
+      <h2 class="safety-h">What you've shared sounds important.</h2>
+      <p class="safety-body">This is bigger than what I can help with here. Please speak to someone you trust — a counsellor, a mentor, or a trusted adult in your life.</p>
+      <div class="helpline-box">
+        <div class="helpline-label">Talk to someone who can help</div>
+        <span class="helpline-number" id="safety-helpline">iCall: 9152987821</span>
+      </div>
+      <p class="safety-footer">You don't have to carry this alone.</p>
+      <div class="safety-continue" onclick="continueAfterSafety()">Continue with feedback anyway →</div>
+    </div>
+  </div>
+</div>
+
+<!-- S4: ABUSE REDIRECT -->
+<div class="screen s-screen" id="sc-s-abuse">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:28px 22px;">
+    <div class="abuse-card">
+      <div class="abuse-icon">💬</div>
+      <h2 class="abuse-h">This space is for honest feedback about your learning.</h2>
+      <p class="abuse-body">Personal comments won't reach your teacher — but your genuine experience will. What's actually going on for you in this class?</p>
+      <button class="abuse-rephrase" onclick="rephraseResponse()">Rephrase my answer →</button>
+      <div class="abuse-skip" onclick="skipAfterAbuse()">Skip this question</div>
+    </div>
+  </div>
+</div>
+
+<!-- S5: PROCESSING -->
+<div class="screen s-screen" id="sc-s-proc">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;">
+    <div class="proc-ring"></div>
+    <h2 class="proc-h">Your response has been received.</h2>
+    <p class="proc-sub">Being added to the group signal now.</p>
+  </div>
+</div>
+
+<!-- S6: DONE -->
+<div class="screen s-screen" id="sc-s-done">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:28px 24px;">
+    <div class="done-inner">
+      <div class="done-icon">📡</div>
+      <h1 class="done-h">Signal sent.</h1>
+      <p class="done-sub">Your voice is part of the group signal. Your teacher receives the pattern — not your words, not your name.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TEACHER SCREENS
+═══════════════════════════════════════ -->
+
+<!-- T1: LOGIN -->
+<div class="screen t-screen active" id="sc-t-login">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;min-height:100vh;">
+    <div class="login-inner">
+      <div class="login-wordmark">Open Signal</div>
+      <p class="login-tagline">Anonymous feedback, honest patterns.<br>For teachers who want to know their room.</p>
+
+      <div class="login-card">
+        <div class="login-h">Sign in to your dashboard</div>
+        <div class="login-sub">Your identity stays with you. Your students remain anonymous always.</div>
+
+        <button class="google-btn" onclick="loginWithGoogle()">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div class="divider">or</div>
+
+        <div class="phone-input-wrap">
+          <input class="phone-input" type="tel" id="phone-input" placeholder="+91 98765 43210" />
+          <button class="phone-btn" onclick="loginWithPhone()">Send OTP →</button>
+        </div>
+      </div>
+
+      <p class="login-note">By signing in you agree to Open Signal's terms. Your students' responses are anonymous and never stored against any identity.</p>
+    </div>
+  </div>
+</div>
+
+<!-- T2: HOME -->
+<div class="screen t-screen" id="sc-t-home">
+  <div class="t-topbar">
+    <div class="wordmark wordmark-t">Open Signal</div>
+    <div class="topbar-right">
+      <button class="compare-btn" id="compare-btn" onclick="openCompare()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>
+        Compare
+      </button>
+      <button class="add-group-btn" id="add-group-btn" onclick="openAddGroup()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New group
+      </button>
+    </div>
+  </div>
+  <div class="home-body">
+    <div class="home-label" id="home-label">Your groups</div>
+    <div class="group-list" id="group-list">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-h">No groups yet</div>
+        <p class="empty-sub">Tap <strong>New group</strong> to create your first.<br>Each group gets its own anonymous feedback link.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T3: GROUP DASHBOARD -->
+<div class="screen t-screen" id="sc-t-dash">
+  <div class="dash-topbar">
+    <button class="btn btn-ghost-t" onclick="goHome()">← All groups</button>
+    <div class="dash-session-status" id="dash-status-pill">
+      <div class="status-dot idle" id="dash-dot"></div>
+      <span id="dash-status-text">No session</span>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <div>
+      <div class="dash-group-name" id="dash-group-name">Group</div>
+      <div class="dash-session-info" id="dash-session-info"></div>
+    </div>
+
+    <!-- Response counter -->
+    <div class="counter-card" id="counter-card">
+      <div class="counter-number" id="counter-n">0</div>
+      <div class="counter-info">
+        <div class="counter-label" id="counter-label">Responses received</div>
+        <div class="counter-sub" id="counter-sub">Start a session to begin collecting feedback.</div>
+        <div class="counter-track">
+          <div class="counter-fill" id="counter-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session actions -->
+    <div class="session-actions" id="session-actions">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <!-- Synthesis card -->
+    <div class="synth-card" id="synth-card">
+      <div class="synth-header">
+        <div class="synth-title">Group signal</div>
+        <div class="synth-meta" id="synth-meta">—</div>
+      </div>
+      <div class="synth-body" id="synth-body">
+        <div class="synth-waiting" id="synth-waiting">
+          <div class="wait-spinner" id="wait-spinner"></div>
+          <p class="wait-text" id="wait-text">No signal yet.</p>
+          <span class="threshold-note" id="threshold-note"></span>
+        </div>
+        <div class="synth-sections" id="synth-sections">
+          <div class="synth-section working">
+            <div class="section-tag">What's working</div>
+            <div class="section-text" id="sec-working"></div>
+          </div>
+          <div class="synth-section friction">
+            <div class="section-tag">Where friction is</div>
+            <div class="section-text" id="sec-friction"></div>
+          </div>
+          <div class="synth-section signal">
+            <div class="section-tag">The signal</div>
+            <div class="section-text" id="sec-signal"></div>
+          </div>
+          <div class="insight-panel" id="insight-panel">
+            <div class="insight-tag">Actionable insight</div>
+            <div id="insight-content"></div>
+          </div>
+        </div>
+      </div>
+      <div class="synth-footer" id="synth-footer" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="listen-btn" onclick="playSynth()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            Listen
+          </button>
+          <button class="listen-btn" id="refresh-btn" onclick="refreshSynthesis()" style="display:none;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        <button class="insight-link" id="insight-btn" onclick="requestInsight()">Want an actionable insight? →</button>
+      </div>
+    </div>
+
+    <!-- Previous sessions timeline -->
+    <div class="timeline-section" id="timeline-section">
+      <div class="timeline-header" onclick="toggleTimeline()">
+        <div class="timeline-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Previous sessions
+          <span id="timeline-count" style="font-size:10px;color:var(--t-muted);font-weight:400;"></span>
+        </div>
+        <span class="timeline-chevron" id="timeline-chevron">▾</span>
+      </div>
+      <div class="timeline-list" id="timeline-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Close session (bottom) -->
+    <button class="btn-close-session" id="close-session-btn" onclick="openCloseSession()" style="display:none;">
+      Archive this session
+    </button>
+
+  </div>
+</div>
+
+<!-- T4: COMPARE VIEW -->
+<div class="screen t-screen" id="sc-t-compare">
+  <div class="t-topbar">
+    <button class="btn btn-ghost-t" onclick="go('sc-t-home')">← All groups</button>
+    <div class="wordmark wordmark-t">Compare</div>
+  </div>
+  <div class="compare-body">
+    <p class="compare-intro" id="compare-intro">Latest closed signal from each group. Dates show how recent each picture is.</p>
+    <div id="compare-list">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MODALS
+═══════════════════════════════════════ -->
+
+<!-- Add group modal -->
+<div class="modal-overlay" id="modal-add-group">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-h">New group</h3>
+    <p class="modal-sub">Give this group a name. Each group gets its own anonymous feedback link.</p>
+    <div class="field">
+      <label>Group name</label>
+      <input type="text" id="new-group-name" placeholder="e.g. Year 10B, Physics Batch, Evening Group" maxlength="60" />
+      <label style="display: block; margin-top: 16px; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: var(--t-text-secondary);">Synthesis Language</label>
+      <select id="group-language-select" style="width: 100%; padding: 12px; border: 1px solid var(--t-border); border-radius: 6px; font-family: var(--font-body); font-size: 14px; background: var(--t-surface); color: var(--t-text); cursor: pointer;">
+        <option value="English">English</option>
+        <option value="Hindi">Hindi</option>
+        <option value="Tamil">Tamil</option>
+        <option value="Telugu">Telugu</option>
+        <option value="Kannada">Kannada</option>
+        <option value="Malayalam">Malayalam</option>
+        <option value="Marathi">Marathi</option>
+        <option value="Gujarati">Gujarati</option>
+        <option value="Punjabi">Punjabi</option>
+        <option value="Bengali">Bengali</option>
+        <option value="Odia">Odia</option>
+        <option value="Urdu">Urdu</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="err" id="add-group-err"></div>
+    <button class="btn btn-primary-t" onclick="createGroup()">Create group →</button>
+    <span class="modal-cancel" onclick="closeModal('modal-add-group')">Cancel</span>
+  </div>
+</div>
+
+<!-- Start session modal -->
+<div class="modal-overlay" id="modal-start-session">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-h">Start new session</h3>
+    <p class="modal-sub">Set the group size for this session. This determines when the signal fires.</p>
+    <div class="session-setup-note">
+      The signal fires when <strong>33% of your group</strong> has responded. You control the window — close the link when you're ready to lock the signal.
+    </div>
+    <div class="field">
+      <label>How many people are in this group today?</label>
+      <input type="number" id="session-size" placeholder="e.g. 28" min="3" max="500" />
+    </div>
+    <div class="err" id="session-err"></div>
+    <button class="btn btn-primary-t" onclick="startSession()">Start session →</button>
+    <span class="modal-cancel" onclick="closeModal('modal-start-session')">Cancel</span>
+  </div>
+</div>
+
+<!-- Close link confirmation -->
+<div class="modal-overlay" id="modal-close-link">
+  <div class="confirm-sheet">
+    <div class="modal-handle"></div>
+    <div class="confirm-icon">🔒</div>
+    <div class="confirm-h">Close this feedback link?</div>
+    <p class="confirm-body">No new responses will be accepted. The signal will solidify based on responses received so far.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-primary-t" onclick="confirmCloseLink()">Close link — lock signal</button>
+      <span class="modal-cancel" onclick="closeModal('modal-close-link')">Keep it open</span>
+    </div>
+  </div>
+</div>
+
+<!-- Close session / archive confirmation -->
+<div class="modal-overlay" id="modal-close-session">
+  <div class="confirm-sheet">
+    <div class="modal-handle"></div>
+    <div class="confirm-icon">📁</div>
+    <div class="confirm-h">Archive this session?</div>
+    <p class="confirm-body">This session moves into your timeline. You can start a fresh session for this group anytime after archiving.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-primary-t" onclick="confirmCloseSession()">Archive session</button>
+      <span class="modal-cancel" onclick="closeModal('modal-close-session')">Not yet</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIGURATION & SUPABASE INITIALIZATION
+═══════════════════════════════════════════════ */
+const CLAUDE_API_KEY = null; // Keep server-side only
+const CLAUDE_MODEL   = 'claude-sonnet-4-20250514';
+const THRESHOLD_PCT  = 0.33; // 33% minimum response rate
+const MAX_GROUPS     = 5;
+const AUTO_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Supabase initialization
+const SUPABASE_URL = 'https://thikdbmkmyrgxdycwytc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1amJpeG5nZGdzd2FraWRzdHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTczNzMsImV4cCI6MjA4OTEzMzM3M30.3-b3JCYuEs6p7yK-wZlP0by1837MzgX8lAvDalIFE5Q';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Current authenticated user
+let currentUser = null;
+let currentSessionFromLink = null;
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let groups = [];
+/*
+  Group shape:
+  {
+    id: string,
+    name: string,
+    sessions: Session[],         // all sessions, most recent last
+    currentSession: Session|null // active or link-closed session
+  }
+
+  Session shape:
+  {
+    id: string,
+    groupSize: number,
+    startedAt: timestamp,
+    linkClosedAt: timestamp|null,
+    archivedAt: timestamp|null,
+    responses: Response[],
+    synthesis: SynthesisResult|null,
+    generating: boolean
+  }
+
+  Response shape:
+  { answers: [{q, a}], submittedAt: timestamp }
+
+  SynthesisResult shape:
+  { working, friction, signal, generatedAt, responseCount, responseRate }
+*/
+
+let currentGroupIdx = null;
+let studentGroupIdx = null;
+let studentStep     = 0;
+let studentAnswers  = [];
+let synthData       = null; // current synthesis for TTS / insight
+let timelineOpen    = false;
+let abuseFlagged    = false; // which step was flagged
+
+/* ═══════════════════════════════════════════════
+   STUDENT PROMPTS
+═══════════════════════════════════════════════ */
+const PROMPTS = [
+  {
+    q: "What's been working well in class lately?",
+    hint: "Anything — a topic, a method, a moment that clicked.",
+    placeholder: "Something that's been working..."
+  },
+  {
+    q: "What's felt confusing or hard to follow?",
+    hint: "Be as specific as you can. Or just describe the feeling.",
+    placeholder: "Something that's been difficult..."
+  },
+  {
+    q: "How are you feeling about this subject right now?",
+    hint: "Your confidence, your interest — whatever is honest.",
+    placeholder: "Honestly, I feel..."
+  },
+  {
+    q: "What's one thing you wish was different about how this class runs?",
+    hint: "The pace, the method, what gets covered — anything.",
+    placeholder: "I wish..."
+  }
+];
+
+/* ═══════════════════════════════════════════════
+   SAFETY DETECTION — static keyword list
+═══════════════════════════════════════════════ */
+const SAFETY_KEYWORDS = [
+  'bullied','bullying','harassed','harassment','threatened','unsafe',
+  'afraid','scared','hurt me','hitting','abuse','abused','not safe',
+  'sexual','inappropriate','someone is hurting','touching me',
+  'don\'t feel safe','want to die','kill myself','self harm','cutting myself',
+  'suicidal','end my life'
+];
+
+function hasSafety(text) {
+  const t = text.toLowerCase();
+  return SAFETY_KEYWORDS.some(w => t.includes(w));
+}
+
+/* ═══════════════════════════════════════════════
+   ABUSE DETECTION — Claude classification call
+   Only flags unambiguous personal malice toward an individual.
+   Frustrated/hyperbolic language about the subject passes through.
+═══════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   CLAUDE API INTEGRATION — SYNTHESIS GENERATION
+═══════════════════════════════════════════════ */
+
+async function generateSynthesis(groupIdx, isFinalClose) {
+  const group = groups[groupIdx];
+  if (!group || !group.currentSession) return;
+  
+  const session = group.currentSession;
+  const responses = session.responses || [];
+  
+  if (responses.length === 0) return;
+  
+  try {
+    // Prepare response text for Claude
+    const responseTexts = responses.map(r => 
+      r.answers.map(a => `Q: ${a.q}\nA: ${a.a || '(skipped)'}`).join('\n\n')
+    ).join('\n---\n');
+    
+    const threshold = Math.ceil(session.groupSize * THRESHOLD_PCT);
+    const responseRate = Math.round((responses.length / session.groupSize) * 100);
+    
+    // Choose prompt based on context
+    let systemPrompt, userPrompt;
+    
+    if (isFinalClose && responseRate < 33) {
+      // Prompt C: Participation note (below threshold)
+      systemPrompt = `You are an educational analyst. A teacher has closed feedback collection on a class session. Participation was low. Write a brief, empathetic note to the teacher about what low participation might signal, and suggest one gentle follow-up action.`;
+      
+      userPrompt = `Class size: ${session.groupSize}
+Responses received: ${responses.length}
+Response rate: ${responseRate}%
+
+Responses:
+${responseTexts}
+
+Write a 2-3 sentence participation note.`;
+    } else {
+      // Prompt A or B: Synthesis (early signal or final)
+      systemPrompt = `You are a synthesis engine for classroom feedback. Your job is to identify three distinct patterns:
+1. WORKING — what's going well, what students appreciate
+2. FRICTION — where students are confused, stuck, or struggling  
+3. SIGNAL — the emotional/motivational temperature of the room
+
+Be specific. Reference actual student language. Avoid generic observations.`;
+      
+      userPrompt = `Analyze this classroom feedback and identify the three patterns.
+
+Class size: ${session.groupSize}
+Responses received: ${responses.length}
+Response rate: ${responseRate}%
+${isFinalClose ? 'Status: FINAL (link closed)' : 'Status: EARLY SIGNAL (threshold hit)'}
+
+Student responses:
+${responseTexts}
+
+Provide three sections: WORKING, FRICTION, SIGNAL. Each 2-3 sentences.`;
+    }
+    
+    // Call synthesis via Netlify function
+    const response = await fetch('/api/generate-synthesis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        responses,
+        groupName: group.name,
+        groupSize: session.groupSize,
+        language: group.language || 'English',
+        isFinalClose
+      })
+    });
+    
+    if (!response.ok) throw new Error('Synthesis function error');
+    
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    
+    let working = data.working || '';
+    let friction = data.friction || '';
+    let signal = data.signal || '';
+    let participationNote = data.participationNote ? 
+      `${responses.length} of ${session.groupSize} responded — ${responseRate}% of the group. This did not reach the minimum threshold for a reliable signal.` : '';
+    
+    // Save to Supabase
+    const updateData = {
+      synthesis_response_count: responses.length,
+      synthesis_response_rate: responseRate,
+      synthesis_generated_at: new Date().toISOString(),
+      synthesis_is_final: isFinalClose
+    };
+    
+    if (participationNote) {
+      updateData.participation_note = participationNote;
+      updateData.participation_note_generated_at = new Date().toISOString();
+    } else {
+      updateData.synthesis_working = working;
+      updateData.synthesis_friction = friction;
+      updateData.synthesis_signal = signal;
+      
+      // Determine register based on signal sentiment
+      if (signal.toLowerCase().includes('excited') || signal.toLowerCase().includes('confident')) {
+        updateData.synthesis_register = 'strong';
+      } else if (signal.toLowerCase().includes('uncertain') || signal.toLowerCase().includes('mixed')) {
+        updateData.synthesis_register = 'moderate';
+      } else {
+        updateData.synthesis_register = 'tentative';
+      }
+    }
+    
+    const { error } = await supabase.from('sessions')
+      .update(updateData)
+      .eq('id', session.id);
+    
+    if (error) throw error;
+    
+    // Update local state
+    session.synthesis = {
+      working, friction, signal,
+      generatedAt: Date.now(),
+      responseCount: responses.length,
+      responseRate: responseRate,
+      register: updateData.synthesis_register || null,
+      isFinal: isFinalClose
+    };
+    session.participationNote = participationNote;
+    session.generating = false;
+    
+    // Refresh dashboard if open
+    if (currentGroupIdx === groupIdx && document.getElementById('sc-t-dash').classList.contains('active')) {
+      renderDashboard();
+    }
+    
+  } catch (e) {
+    console.error('Synthesis generation failed:', e);
+    session.generating = false;
+  }
+}
+
+async function checkAbuseViaAPI(text) {
+  if (text.length < 10) return false;
+  try {
+    const res = await fetch('/api/check-abuse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    return data.abusive === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function isAbusive(text) {
+  return checkAbuseViaAPI(text);
+}
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════ */
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goHome() {
+  renderHome();
+  go('sc-t-home');
+}
+
+/* ═══════════════════════════════════════════════
+   AUTH (placeholder — Manus connects to Supabase Auth)
+═══════════════════════════════════════════════ */
+async function loginWithGoogle() {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) throw error;
+  } catch (e) {
+    console.error('Google login failed:', e);
+    alert('Login failed. Please try again.');
+  }
+}
+
+async function loginWithPhone() {
+  const phone = document.getElementById('phone-input').value.trim();
+  if (!phone) return;
+  try {
+    const { error } = await supabase.auth.signInWithOtp({ phone });
+    if (error) throw error;
+    alert('OTP sent to ' + phone + '. Check your SMS.');
+    // In production, show OTP verification screen
+  } catch (e) {
+    console.error('Phone login failed:', e);
+    alert('Failed to send OTP. Please try again.');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   STUDENT FLOW
+═══════════════════════════════════════════════ */
+function startPrompts() {
+  studentStep = 0;
+  studentAnswers = [];
+  renderStudentStep();
+  go('sc-s-prompt');
+}
+
+function renderStudentStep() {
+  const p = PROMPTS[studentStep];
+  const total = PROMPTS.length;
+  document.getElementById('prompt-q').textContent = p.q;
+  document.getElementById('prompt-hint').textContent = p.hint;
+  document.getElementById('prompt-ta').value = '';
+  document.getElementById('prompt-ta').placeholder = p.placeholder;
+  document.getElementById('q-counter').textContent = `Question ${studentStep + 1} of ${total}`;
+  document.getElementById('q-label').textContent = `${studentStep + 1} / ${total}`;
+  document.getElementById('next-btn').textContent = studentStep === total - 1 ? 'Submit →' : 'Next →';
+  document.getElementById('prog-fill').style.width = `${(studentStep / total) * 100}%`;
+  document.getElementById('prompt-ta').focus();
+}
+
+async function nextPrompt() {
+  const val = document.getElementById('prompt-ta').value.trim();
+
+  // Safety check
+  if (val && hasSafety(val)) {
+    go('sc-s-safety');
+    return;
+  }
+
+  // Abuse check (async, lightweight)
+  if (val && val.length > 8) {
+    const abusive = await isAbusive(val);
+    if (abusive) {
+      abuseFlagged = studentStep;
+      go('sc-s-abuse');
+      return;
+    }
+  }
+
+  studentAnswers.push({ q: PROMPTS[studentStep].q, a: val });
+  advance();
+}
+
+function skipPrompt() {
+  studentAnswers.push({ q: PROMPTS[studentStep].q, a: '' });
+  advance();
+}
+
+function advance() {
+  if (studentStep < PROMPTS.length - 1) {
+    studentStep++;
+    renderStudentStep();
+  } else {
+    submitStudent();
+  }
+}
+
+function continueAfterSafety() {
+  // Student acknowledged safety info, let them continue
+  go('sc-s-prompt');
+}
+
+function rephraseResponse() {
+  // Return to the flagged step
+  renderStudentStep();
+  go('sc-s-prompt');
+}
+
+function skipAfterAbuse() {
+  studentAnswers.push({ q: PROMPTS[studentStep].q, a: '' });
+  advance();
+}
+
+async function submitStudent() {
+  go('sc-s-proc');
+  const group = groups[studentGroupIdx];
+  if (!group || !group.currentSession) {
+    go('sc-s-done');
+    return;
+  }
+
+  const session = group.currentSession;
+  if (session.linkClosedAt) {
+    // Link already closed
+    go('sc-s-done');
+    return;
+  }
+
+  session.responses.push({
+    answers: [...studentAnswers],
+    submittedAt: Date.now()
+  });
+
+  // Save response to Supabase
+  try {
+    const { error } = await supabase.from('responses').insert({
+      session_id: session.id,
+      answers: studentAnswers,
+      submitted_at: new Date().toISOString()
+    });
+    if (error) throw error;
+  } catch (e) {
+    console.error('Failed to save response:', e);
+  }
+
+  await new Promise(r => setTimeout(r, 900));
+  go('sc-s-done');
+
+  // Check threshold — fire Prompt A (early signal, not final)
+  const threshold = Math.ceil(session.groupSize * THRESHOLD_PCT);
+  if (session.responses.length >= threshold && !session.generating && !session.synthesis) {
+    session.generating = true;
+    generateSynthesis(studentGroupIdx, false); // false = early signal, Prompt A
+  }
+
+  // Update teacher dashboard if open
+  if (currentGroupIdx === studentGroupIdx &&
+      document.getElementById('sc-t-dash').classList.contains('active')) {
+    renderDashboard();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   GROUP MANAGEMENT
+═══════════════════════════════════════════════ */
+function openAddGroup() {
+  if (groups.filter(g => !isArchived(g)).length >= MAX_GROUPS) return;
+  document.getElementById('new-group-name').value = '';
+  document.getElementById('add-group-err').style.display = 'none';
+  openModal('modal-add-group');
+  setTimeout(() => document.getElementById('new-group-name').focus(), 300);
+}
+
+async function createGroup() {
+  const name = document.getElementById('new-group-name').value.trim();
+  const language = document.getElementById('group-language-select').value;
+  const err  = document.getElementById('add-group-err');
+  if (!name) { err.textContent = 'Please enter a group name.'; err.style.display = 'block'; return; }
+  const active = groups.filter(g => activeGroupCount(g)).length;
+  if (active >= MAX_GROUPS) { err.textContent = 'Maximum 5 active groups reached.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  
+  try {
+    const { data, error } = await supabase.from('groups').insert({
+      teacher_id: currentUser.id,
+      name: name
+    }).select().single();
+    
+    if (error) throw error;
+    
+    groups.push({
+      id: data.id,
+      name: data.name,
+      sessions: [],
+      currentSession: null
+    });
+    closeModal('modal-add-group');
+    renderHome();
+  } catch (e) {
+    console.error('Failed to create group:', e);
+    err.textContent = 'Failed to create group. Please try again.';
+    err.style.display = 'block';
+  }
+}
+
+function activeGroupCount(g) {
+  // A group counts toward limit if it has any non-archived current session or no sessions
+  return true; // All created groups count until archived
+}
+
+function isArchived(g) {
+  return false; // Future: groups can be archived
+}
+
+/* ═══════════════════════════════════════════════
+   SESSION MANAGEMENT
+═══════════════════════════════════════════════ */
+function openStartSession() {
+  document.getElementById('session-size').value = '';
+  document.getElementById('session-err').style.display = 'none';
+  openModal('modal-start-session');
+  setTimeout(() => document.getElementById('session-size').focus(), 300);
+}
+
+function startSession() {
+  const sizeVal = document.getElementById('session-size').value.trim();
+  const err     = document.getElementById('session-err');
+  const size    = parseInt(sizeVal);
+  if (!sizeVal || isNaN(size) || size < 3) {
+    err.textContent = 'Please enter a valid group size (minimum 3).';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  const group = groups[currentGroupIdx];
+
+  // Archive any previous session that wasn't archived
+  if (group.currentSession && group.currentSession.linkClosedAt) {
+    archiveCurrentSession(currentGroupIdx);
+  }
+
+  try {
+    const { data, error } = await supabase.from('sessions').insert({
+      group_id: group.id,
+      group_size: size,
+      started_at: new Date().toISOString()
+    }).select().single();
+    
+    if (error) throw error;
+    
+    group.currentSession = {
+      id: data.id,
+      groupSize: size,
+      startedAt: new Date(data.started_at).getTime(),
+      linkClosedAt: null,
+      archivedAt: null,
+      responses: [],
+      synthesis: null,
+      generating: false
+    };
+  } catch (e) {
+    console.error('Failed to start session:', e);
+    err.textContent = 'Failed to start session. Please try again.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Assign student link — in production this is a unique URL
+  // Manus: generate unique URL from Supabase, store session ID
+  studentGroupIdx = currentGroupIdx;
+
+  closeModal('modal-start-session');
+  renderDashboard();
+}
+
+function openCloseLink() {
+  openModal('modal-close-link');
+}
+
+function confirmCloseLink() {
+  const group = groups[currentGroupIdx];
+  if (!group.currentSession) return;
+  group.currentSession.linkClosedAt = Date.now();
+  // Manus: update Supabase session record
+  closeModal('modal-close-link');
+
+  // Always generate final synthesis on link close — Prompt B (or C if below threshold)
+  const session = group.currentSession;
+  if (!session.generating) {
+    session.generating = true;
+    generateSynthesis(currentGroupIdx, true); // true = isFinalClose
+  }
+
+  renderDashboard();
+}
+
+function openCloseSession() {
+  openModal('modal-close-session');
+}
+
+function confirmCloseSession() {
+  archiveCurrentSession(currentGroupIdx);
+  closeModal('modal-close-session');
+  renderDashboard();
+}
+
+function archiveCurrentSession(groupIdx) {
+  const group = groups[groupIdx];
+  if (!group.currentSession) return;
+  group.currentSession.archivedAt = Date.now();
+  if (!group.currentSession.linkClosedAt) {
+    group.currentSession.linkClosedAt = Date.now();
+  }
+  group.sessions.push(group.currentSession);
+  group.currentSession = null;
+  // Manus: update Supabase
+}
+
+function shareLink() {
+  const group = groups[currentGroupIdx];
+  if (!group || !group.currentSession) return;
+  // In production: generate the actual unique URL from session ID
+  // Manus: const url = `${window.location.origin}/respond/${group.currentSession.id}`
+  const url = `${window.location.origin}${window.location.pathname}?session=${group.currentSession.id}`;
+  if (navigator.share) {
+    navigator.share({
+      title: 'Open Signal — Share your feedback',
+      text: `${group.name} — share your honest feedback anonymously.`,
+      url: url
+    }).catch(() => copyToClipboard(url));
+  } else {
+    copyToClipboard(url);
+  }
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).then(() => {
+    alert('Link copied to clipboard.');
+  }).catch(() => {
+    prompt('Copy this link to share with your group:', text);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   SYNTHESIS GENERATION
+   Three distinct prompts:
+   A — First fire at 33% (early signal, tentative)
+   B — Final lock on link close (definitive read)
+   C — Participation note below 33% on link close
+═══════════════════════════════════════════════ */
+
+function buildCombinedResponses(responses) {
+  return responses.flatMap(r =>
+    r.answers.filter(a => a.a).map(a => `Q: ${a.q}\nA: ${a.a}`)
+  ).join('\n\n');
+}
+
+function getRegister(rate) {
+  if (rate <= 50) return 'tentative';
+  if (rate <= 75) return 'moderate';
+  return 'strong';
+}
+
+function registerLanguage(rate) {
+  if (rate <= 50) return 'Response rate is ' + rate + '% — use tentative language throughout: "among those who responded so far...", "an early pattern suggests...", "it is too soon to be certain but..."';
+  if (rate <= 75) return 'Response rate is ' + rate + '% — use moderate confidence: "across much of the group...", "many students...", "a clear pattern emerges..."';
+  return 'Response rate is ' + rate + '% — speak with measured confidence: "across the group...", "the class as a whole...", "a strong pattern..."';
+}
+
+// PROMPT A — First synthesis at 33% threshold
+function buildPromptA(count, groupSize, rate) {
+  return `You are a neutral observer delivering an early signal from an anonymous group feedback session. This synthesis is based on the first responses to come in — it is an emerging picture, not a complete one.
+
+${registerLanguage(rate)}
+
+Strict rules:
+- Write in English
+- Never identify any individual — you are describing a room, not a collection of people
+- Surface only patterns consistent across multiple responses — not isolated views
+- The subject being studied is always a third party in the room — consider the relationship between students, teacher, and subject
+- Never tell the teacher what to do
+- Never imply the teacher caused any difficulty
+- Tone: an early dispatch from the room — honest, careful, aware of its own limitations
+- End the SIGNAL section with exactly this sentence: "This is an early read — more responses may add to or shift this picture."
+
+Structure in EXACTLY three sections:
+[WORKING]
+2 sentences — what is already showing as working, even at this early stage.
+[FRICTION]
+2 sentences — where difficulty or confusion is already appearing as a pattern.
+[SIGNAL]
+2-3 sentences — the early emotional and motivational temperature of the room. End with: "This is an early read — more responses may add to or shift this picture."
+[END]`;
+}
+
+// PROMPT B — Final synthesis on link close
+function buildPromptB(count, groupSize, rate) {
+  return `You are a neutral observer delivering the definitive signal from an anonymous group feedback session. The feedback window has now closed. This is the complete picture — the synthesis the teacher will sit with and reflect on.
+
+${registerLanguage(rate)}
+
+Strict rules:
+- Write in English
+- Never identify any individual — you are describing a room, not a collection of people
+- Surface only patterns consistent across multiple responses — not isolated views
+- The subject being studied is always a third party in the room — consider the relationship between students, teacher, and subject
+- Never tell the teacher what to do
+- Never imply the teacher caused any difficulty
+- Never diagnose learning difficulties
+- This is the final synthesis — write it as a complete, considered picture, not a live update
+- Tone: a trusted observer who has sat with the full picture and is now passing it on with care
+
+Structure in EXACTLY three sections:
+[WORKING]
+2-3 sentences — what is genuinely working. Be specific to what the responses showed.
+[FRICTION]
+2-3 sentences — where difficulty appears as a consistent pattern. Describe what the room is experiencing, never what the teacher did wrong.
+[SIGNAL]
+2-3 sentences — the complete picture of what this room is holding. Include the emotional and motivational relationship with the subject. End with a sentence that explicitly restores the teacher's authority — "You will know best how to work with this." or similar.
+[END]`;
+}
+
+// PROMPT C — Participation note below 33% on link close
+function buildPromptC(count, groupSize, rate) {
+  return `You are a neutral observer. A teacher has just closed a feedback session where the response rate did not reach the minimum threshold for a reliable signal. You are not delivering a synthesis — there is not enough data for one. You are delivering a short, honest, warm note about the participation itself.
+
+Strict rules:
+- Write in English
+- Do not attempt to synthesise the responses — there are not enough
+- Do not imply the teacher caused the low participation — there are many possible reasons and you do not know which applies
+- Do not judge or evaluate the teacher in any way
+- Offer 2-3 possible reasons for low participation neutrally — as possibilities, not conclusions
+- Keep it to 3-4 sentences maximum
+- Tone: a thoughtful colleague passing on an observation, not a system delivering a notification
+- End by explicitly handing interpretation back to the teacher
+
+Context: ${count} of ${groupSize} responded — ${rate}% response rate. Minimum threshold is 33%.
+
+Write a short participation note. Plain prose only. No headers, no bullet points, no sections.`;
+}
+
+async function generateSynthesis(groupIdx, isFinalClose) {
+  const group   = groups[groupIdx];
+  const session = group.currentSession;
+  if (!session) return;
+
+  const responses = session.responses;
+  const count     = responses.length;
+  const rate      = Math.round((count / session.groupSize) * 100);
+  const threshold = Math.ceil(session.groupSize * THRESHOLD_PCT);
+  const combined  = buildCombinedResponses(responses);
+
+  // Below threshold on link close — generate participation note (Prompt C)
+  if (isFinalClose && count < threshold) {
+    await generateParticipationNote(groupIdx, count, session.groupSize, rate);
+    return;
+  }
+
+  // Choose prompt based on whether this is first fire or final close
+  const systemPrompt = isFinalClose
+    ? buildPromptB(count, session.groupSize, rate)
+    : buildPromptA(count, session.groupSize, rate);
+
+  const register = getRegister(rate);
+
+  try {
+    const res = await fetch('/api/generate-synthesis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        responses: session.responses,
+        groupName: group.name,
+        groupSize: session.groupSize,
+        language: group.language || 'English',
+        isFinalClose
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const text = [data.working, data.friction, data.signal].join('\n');
+
+    const working  = extractSection(text, 'WORKING');
+    const friction = extractSection(text, 'FRICTION');
+    const signal   = extractSection(text, 'SIGNAL');
+
+    // If final close — mark as definitive
+    session.synthesis = {
+      working,
+      friction,
+      signal,
+      generatedAt: Date.now(),
+      responseCount: count,
+      responseRate: rate,
+      register,
+      isFinal: isFinalClose
+    };
+    session.generating = false;
+    synthData = session.synthesis;
+
+    // Manus: save synthesis to Supabase
+
+    if (currentGroupIdx === groupIdx &&
+        document.getElementById('sc-t-dash').classList.contains('active')) {
+      renderDashboard();
+    }
+    renderHome();
+
+  } catch (e) {
+    session.generating = false;
+    session.synthesis = {
+      working: '—',
+      friction: '—',
+      signal: 'Could not generate signal. Please check your connection.',
+      generatedAt: Date.now(),
+      responseCount: count,
+      responseRate: rate,
+      register: 'tentative',
+      isFinal: isFinalClose
+    };
+    if (currentGroupIdx === groupIdx &&
+        document.getElementById('sc-t-dash').classList.contains('active')) {
+      renderDashboard();
+    }
+  }
+}
+
+// PROMPT C — Participation note generator
+async function generateParticipationNote(groupIdx, count, groupSize, rate) {
+  const group   = groups[groupIdx];
+  const session = group.currentSession;
+
+  try {
+    const res = await fetch('/api/generate-synthesis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        responses: [],
+        groupName: group.name,
+        groupSize,
+        language: group.language || 'English',
+        isFinalClose: true
+      })
+    });
+
+    const data = await res.json();
+    const note = `${count} of ${groupSize} responded this session — ${rate}% of the group. This did not reach the minimum threshold for a reliable signal.`;
+
+    session.participationNote = {
+      text: note,
+      responseCount: count,
+      responseRate: rate,
+      generatedAt: Date.now()
+    };
+    session.generating = false;
+
+    // Manus: save participation note to Supabase
+
+    if (currentGroupIdx === groupIdx &&
+        document.getElementById('sc-t-dash').classList.contains('active')) {
+      renderDashboard();
+    }
+    renderHome();
+
+  } catch (e) {
+    session.generating = false;
+    session.participationNote = {
+      text: `${count} of ${groupSize} responded this session — ${rate}% of the group. This did not reach the minimum threshold for a reliable signal. You will know best what this means for this particular group.`,
+      responseCount: count,
+      responseRate: rate,
+      generatedAt: Date.now()
+    };
+    if (currentGroupIdx === groupIdx &&
+        document.getElementById('sc-t-dash').classList.contains('active')) {
+      renderDashboard();
+    }
+  }
+}
+
+// Manual refresh — teacher-triggered re-synthesis
+async function refreshSynthesis() {
+  const group = groups[currentGroupIdx];
+  if (!group || !group.currentSession) return;
+  const session = group.currentSession;
+  if (session.generating) return;
+
+  // Only allow if above threshold
+  const threshold = Math.ceil(session.groupSize * THRESHOLD_PCT);
+  if (session.responses.length < threshold) return;
+
+  session.generating = true;
+  // Use final prompt if link is closed, early prompt if still open
+  await generateSynthesis(currentGroupIdx, !!session.linkClosedAt);
+}
+
+/* ═══════════════════════════════════════════════
+   ACTIONABLE INSIGHT — separate on-demand call
+═══════════════════════════════════════════════ */
+async function requestInsight() {
+  if (!synthData) return;
+  const btn   = document.getElementById('insight-btn');
+  const panel = document.getElementById('insight-panel');
+  const cont  = document.getElementById('insight-content');
+
+  btn.style.display = 'none';
+  panel.classList.add('visible');
+  cont.innerHTML = '<div class="insight-loading"><div class="insight-spinner"></div> Generating insight...</div>';
+
+  try {
+    const res = await fetch('/api/generate-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        synthesis: synthData,
+        groupName: groups[currentGroupIdx]?.name || '',
+        language: groups[currentGroupIdx]?.language || 'English'
+      })
+    });
+    const data = await res.json();
+    const text = data.insight || '';
+    cont.innerHTML = `<div class="insight-text">${text}</div>`;
+  } catch (e) {
+    cont.innerHTML = '<div class="insight-text">Could not generate insight. Please check your connection.</div>';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   RENDERING: HOME
+═══════════════════════════════════════════════ */
+function renderHome() {
+  const list   = document.getElementById('group-list');
+  const addBtn = document.getElementById('add-group-btn');
+  const cmpBtn = document.getElementById('compare-btn');
+
+  // Sort: most recent activity first
+  const sorted = [...groups].map((g, i) => ({ g, i })).sort((a, b) => {
+    const aTime = lastActivity(a.g);
+    const bTime = lastActivity(b.g);
+    return bTime - aTime;
+  });
+
+  if (groups.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-h">No groups yet</div>
+        <p class="empty-sub">Tap <strong>New group</strong> to create your first.<br>Each group gets its own anonymous feedback link.</p>
+      </div>`;
+  } else {
+    list.innerHTML = sorted.map(({ g, i }) => renderGroupCard(g, i)).join('');
+  }
+
+  // Limits
+  if (groups.length >= MAX_GROUPS) {
+    addBtn.classList.add('disabled');
+  } else {
+    addBtn.classList.remove('disabled');
+  }
+
+  // Compare button — needs at least 2 groups with closed sessions
+  const groupsWithSignal = groups.filter(g => latestClosedSynthesis(g));
+  if (groupsWithSignal.length >= 2) {
+    cmpBtn.classList.remove('disabled');
+  } else {
+    cmpBtn.classList.add('disabled');
+    cmpBtn.title = 'Compare becomes available once 2 groups have closed sessions with signals';
+  }
+}
+
+function renderGroupCard(group, idx) {
+  const { status, label, meta } = groupStatus(group);
+  const icon = groupIcon(group.name);
+  return `
+    <div class="group-card" onclick="openGroup(${idx})">
+      <div class="group-icon">${icon}</div>
+      <div class="group-info">
+        <div class="group-name">${esc(group.name)}</div>
+        <div class="group-meta">${meta}</div>
+      </div>
+      <div class="status-pill ${status}">${label}</div>
+    </div>`;
+}
+
+function groupStatus(group) {
+  const s = group.currentSession;
+  const completedCount = group.sessions.filter(s => s.archivedAt).length;
+  const sessionLabel = completedCount === 0 ? 'No completed sessions' : `${completedCount} session${completedCount > 1 ? 's' : ''} completed`;
+
+  if (!s) {
+    const lastS = group.sessions[group.sessions.length - 1];
+    if (lastS) {
+      return { status: 'idle', label: 'No active session', meta: `${sessionLabel} · Last: ${formatDate(lastS.archivedAt || lastS.startedAt)}` };
+    }
+    return { status: 'idle', label: 'No sessions yet', meta: 'Tap to start first session' };
+  }
+  if (s.linkClosedAt) {
+    const synth = s.synthesis;
+    if (synth) return { status: 'closed', label: 'Signal ready', meta: `${sessionLabel} · ${synth.responseCount} of ${s.groupSize} · ${synth.responseRate}%` };
+    return { status: 'closed', label: 'Link closed', meta: `${sessionLabel} · ${s.responses.length} of ${s.groupSize} responded` };
+  }
+  const pct = s.groupSize > 0 ? Math.round((s.responses.length / s.groupSize) * 100) : 0;
+  const thresh = Math.ceil(s.groupSize * THRESHOLD_PCT);
+  const sessionNum = completedCount + 1;
+  if (s.responses.length >= thresh) {
+    return { status: 'active', label: 'Session ' + sessionNum, meta: `${sessionLabel} · ${s.responses.length} of ${s.groupSize} · ${pct}% · signal active` };
+  }
+  return { status: 'collecting', label: 'Session ' + sessionNum, meta: `${sessionLabel} · ${s.responses.length} of ${s.groupSize} · ${pct}% · need ${thresh - s.responses.length} more` };
+}
+
+function lastActivity(group) {
+  const s = group.currentSession;
+  if (s) return s.linkClosedAt || s.startedAt;
+  const last = group.sessions[group.sessions.length - 1];
+  return last ? last.archivedAt || last.startedAt : 0;
+}
+
+function latestClosedSynthesis(group) {
+  // Latest closed session with a synthesis
+  const closedWithSynth = group.sessions.filter(s => s.synthesis);
+  // Also check if current session is closed with synthesis
+  if (group.currentSession?.linkClosedAt && group.currentSession?.synthesis) {
+    return group.currentSession.synthesis;
+  }
+  if (closedWithSynth.length) return closedWithSynth[closedWithSynth.length - 1].synthesis;
+  return null;
+}
+
+function latestClosedSession(group) {
+  if (group.currentSession?.linkClosedAt) return group.currentSession;
+  if (group.sessions.length) return group.sessions[group.sessions.length - 1];
+  return null;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDERING: DASHBOARD
+═══════════════════════════════════════════════ */
+function openGroup(idx) {
+  currentGroupIdx = idx;
+  renderDashboard();
+  go('sc-t-dash');
+}
+
+function renderDashboard() {
+  const group   = groups[currentGroupIdx];
+  const session = group.currentSession;
+
+  document.getElementById('dash-group-name').textContent = group.name;
+
+  // Status pill
+  updateStatusPill(session);
+
+  // Session info line
+  const infoEl = document.getElementById('dash-session-info');
+  if (session) {
+    const started = `Session started ${formatDate(session.startedAt)}`;
+    const closed  = session.linkClosedAt ? ` · Link closed ${formatDate(session.linkClosedAt)}` : ' · Link active';
+    const expires = !session.linkClosedAt ? ` · Auto-closes ${formatDate(session.startedAt + AUTO_EXPIRE_MS)}` : '';
+    infoEl.textContent = started + closed + expires;
+  } else {
+    infoEl.textContent = group.sessions.length ? `${group.sessions.length} archived session${group.sessions.length > 1 ? 's' : ''}` : 'No sessions yet';
+  }
+
+  // Counter
+  renderCounter(session, group);
+
+  // Session actions
+  renderActions(session);
+
+  // Synthesis
+  renderSynthesisCard(session);
+
+  // Timeline
+  renderTimeline(group);
+
+  // Close session button — show if link is closed
+  const closeSessBtn = document.getElementById('close-session-btn');
+  if (session && session.linkClosedAt) {
+    closeSessBtn.style.display = 'block';
+  } else {
+    closeSessBtn.style.display = 'none';
+  }
+}
+
+function updateStatusPill(session) {
+  const dot  = document.getElementById('dash-dot');
+  const text = document.getElementById('dash-status-text');
+  dot.className = 'status-dot';
+  if (!session) {
+    dot.classList.add('idle');
+    text.textContent = 'No session';
+  } else if (session.linkClosedAt) {
+    dot.classList.add('closed');
+    text.textContent = session.synthesis ? 'Signal ready' : 'Link closed';
+  } else {
+    const thresh = Math.ceil(session.groupSize * THRESHOLD_PCT);
+    if (session.responses.length >= thresh) {
+      dot.classList.add('active');
+      text.textContent = 'Signal active';
+    } else {
+      dot.classList.add('collecting');
+      text.textContent = 'Collecting';
+    }
+  }
+}
+
+function renderCounter(session, group) {
+  const n     = document.getElementById('counter-n');
+  const label = document.getElementById('counter-label');
+  const sub   = document.getElementById('counter-sub');
+  const fill  = document.getElementById('counter-fill');
+
+  if (!session) {
+    n.textContent     = '—';
+    label.textContent = 'No active session';
+    sub.textContent   = 'Start a session to begin collecting feedback.';
+    fill.style.width  = '0%';
+    fill.classList.remove('threshold-met');
+    return;
+  }
+
+  const count   = session.responses.length;
+  const total   = session.groupSize;
+  const thresh  = Math.ceil(total * THRESHOLD_PCT);
+  const pct     = Math.min(Math.round((count / total) * 100), 100);
+  const thPct   = Math.round(THRESHOLD_PCT * 100);
+
+  n.textContent     = count;
+  label.textContent = `of ${total} responded — ${pct}% of the group`;
+  fill.style.width  = `${pct}%`;
+
+  if (count >= thresh) {
+    fill.classList.add('threshold-met');
+    sub.textContent = session.linkClosedAt
+      ? `Link closed — signal locked at ${pct}% response rate.`
+      : `Signal threshold met (${thPct}%). Synthesis active and updating.`;
+  } else {
+    fill.classList.remove('threshold-met');
+    if (session.linkClosedAt) {
+      sub.textContent = `Link closed — ${count} of ${total} responded (${pct}%). Below ${thPct}% threshold — no signal generated.`;
+    } else {
+      sub.textContent = `Need ${thresh - count} more response${thresh - count !== 1 ? 's' : ''} to reach the ${thPct}% threshold.`;
+    }
+  }
+}
+
+function renderActions(session) {
+  const el = document.getElementById('session-actions');
+  if (!session) {
+    el.innerHTML = `<button class="btn-start-session" onclick="openStartSession()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Start session
+    </button>`;
+    return;
+  }
+  if (session.linkClosedAt) {
+    // Link is closed
+    el.innerHTML = `
+      <div class="action-row">
+        <button class="btn-share-link" disabled style="opacity:.4;cursor:default;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Link closed
+        </button>
+      </div>
+      <button class="btn-start-session" onclick="openStartSession()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Start new session
+      </button>`;
+    return;
+  }
+  // Link is active
+  el.innerHTML = `
+    <div class="action-row">
+      <button class="btn-share-link" onclick="shareLink()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share link
+      </button>
+      <button class="btn-close-link" onclick="openCloseLink()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Close link
+      </button>
+    </div>`;
+}
+
+function renderSynthesisCard(session) {
+  const waiting  = document.getElementById('synth-waiting');
+  const sections = document.getElementById('synth-sections');
+  const spinner  = document.getElementById('wait-spinner');
+  const waitText = document.getElementById('wait-text');
+  const thNote   = document.getElementById('threshold-note');
+  const meta     = document.getElementById('synth-meta');
+  const footer   = document.getElementById('synth-footer');
+  const insBtn   = document.getElementById('insight-btn');
+  const insPanel = document.getElementById('insight-panel');
+
+  // Reset insight
+  insBtn.style.display = '';
+  insPanel.classList.remove('visible');
+  insPanel.querySelector('#insight-content').innerHTML = '';
+
+  if (!session) {
+    waiting.style.display  = 'block';
+    sections.classList.remove('visible');
+    spinner.style.display  = 'none';
+    waitText.textContent   = 'No signal yet.';
+    thNote.textContent     = '';
+    meta.textContent       = '—';
+    footer.style.display   = 'none';
+    return;
+  }
+
+  const thresh = Math.ceil(session.groupSize * THRESHOLD_PCT);
+  const count  = session.responses.length;
+
+  if (session.synthesis) {
+    // Show synthesis
+    waiting.style.display = 'none';
+    sections.classList.add('visible');
+    document.getElementById('sec-working').textContent  = session.synthesis.working;
+    document.getElementById('sec-friction').textContent = session.synthesis.friction;
+    document.getElementById('sec-signal').textContent   = session.synthesis.signal;
+
+    const rateLabel = signalStrengthLabel(session.synthesis.register);
+    const finalLabel = session.synthesis.isFinal ? ' · Final signal' : ' · Early signal';
+    meta.textContent = `${session.synthesis.responseRate}% response rate · ${rateLabel}${finalLabel} · ${formatTime(session.synthesis.generatedAt)}`;
+    footer.style.display = 'flex';
+    // Show refresh button only if link is still open and synthesis is not final
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+      refreshBtn.style.display = (!session.linkClosedAt && !session.synthesis.isFinal) ? 'flex' : 'none';
+    }
+    synthData = session.synthesis;
+    return;
+  }
+
+  if (session.generating) {
+    waiting.style.display = 'block';
+    sections.classList.remove('visible');
+    spinner.style.display = 'block';
+    waitText.textContent  = 'Generating signal...';
+    thNote.textContent    = '';
+    meta.textContent      = '—';
+    footer.style.display  = 'none';
+    return;
+  }
+
+  // No synthesis yet
+  waiting.style.display = 'block';
+  sections.classList.remove('visible');
+  spinner.style.display = 'none';
+  footer.style.display  = 'none';
+
+  if (session.linkClosedAt && count < thresh) {
+    // Closed without threshold — show participation note if generated
+    if (session.participationNote) {
+      waiting.style.display = 'none';
+      // Render participation note in a special card
+      sections.classList.remove('visible');
+      const noteHtml = `<div style="background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:var(--radius-sm);padding:14px 15px;margin-top:4px;">
+        <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--t-muted);margin-bottom:8px;">Participation note</div>
+        <div style="font-family:'Lora',serif;font-style:italic;font-size:13px;line-height:1.85;color:var(--t-ink);">${session.participationNote.text}</div>
+        <div style="font-size:11px;color:var(--t-muted);margin-top:8px;">${session.participationNote.responseCount} of ${session.groupSize} responded · ${session.participationNote.responseRate}%</div>
+      </div>`;
+      document.getElementById('synth-body').innerHTML = noteHtml;
+      meta.textContent = 'No signal — participation note generated';
+      return;
+    }
+    if (session.generating) {
+      waiting.style.display = 'block';
+      spinner.style.display = 'block';
+      waitText.textContent  = 'Generating participation note...';
+      thNote.textContent    = '';
+      meta.textContent      = '—';
+      return;
+    }
+    waitText.textContent = `Session closed — ${count} of ${session.groupSize} responded. Signal did not fire.`;
+    thNote.textContent   = `${Math.round(THRESHOLD_PCT * 100)}% (${thresh} responses) needed for signal.`;
+    meta.textContent     = 'No signal';
+    return;
+  }
+
+  if (count === 0) {
+    waitText.textContent = 'Waiting for responses.';
+    thNote.textContent   = `Share the link. Signal fires when ${thresh} of ${session.groupSize} respond.`;
+  } else {
+    spinner.style.display = count >= thresh ? 'block' : 'none';
+    waitText.textContent  = count >= thresh
+      ? `${count} of ${session.groupSize} responded — generating signal...`
+      : `${count} of ${session.groupSize} responded — need ${thresh - count} more.`;
+    thNote.textContent = count >= thresh ? '' : `Minimum ${Math.round(THRESHOLD_PCT * 100)}% needed to fire.`;
+  }
+  meta.textContent = '—';
+}
+
+function signalStrengthLabel(register) {
+  if (register === 'tentative') return 'Tentative signal';
+  if (register === 'moderate')  return 'Moderate signal';
+  return 'Strong signal';
+}
+
+/* ═══════════════════════════════════════════════
+   RENDERING: TIMELINE
+═══════════════════════════════════════════════ */
+function renderTimeline(group) {
+  const section   = document.getElementById('timeline-section');
+  const listEl    = document.getElementById('timeline-list');
+  const countEl   = document.getElementById('timeline-count');
+  const chevron   = document.getElementById('timeline-chevron');
+
+  // All archived sessions
+  const archived  = group.sessions.filter(s => s.archivedAt);
+  countEl.textContent = archived.length ? `(${archived.length})` : '';
+
+  if (archived.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  // Render list — most recent first
+  const reversed = [...archived].reverse();
+  listEl.innerHTML = reversed.map((s, i) => renderTimelineEntry(s, i)).join('');
+}
+
+function renderTimelineEntry(session, idx) {
+  const hasSynth = !!session.synthesis;
+  const date     = formatDate(session.startedAt);
+  const rate     = hasSynth ? `${session.synthesis.responseRate}%` : `${session.responses.length} of ${session.groupSize}`;
+  const preview  = hasSynth ? truncate(session.synthesis.working, 80) : 'No signal generated';
+
+  return `
+    <div class="timeline-entry" onclick="toggleTimelineEntry(this, ${idx})">
+      <div class="entry-row">
+        <div class="entry-date">${date}</div>
+        <div class="entry-rate">${rate} · ${hasSynth ? signalStrengthLabel(session.synthesis.register) : 'No signal'}</div>
+      </div>
+      ${hasSynth
+        ? `<div class="entry-preview">${esc(preview)}</div>`
+        : `<div class="entry-no-signal">Not enough responses — signal did not fire</div>`
+      }
+      ${hasSynth ? `
+        <div class="entry-expanded" id="entry-exp-${idx}">
+          <div class="entry-section working">
+            <div class="entry-section-tag">What's working</div>
+            <div class="entry-section-text">${esc(session.synthesis.working)}</div>
+          </div>
+          <div class="entry-section friction">
+            <div class="entry-section-tag">Where friction is</div>
+            <div class="entry-section-text">${esc(session.synthesis.friction)}</div>
+          </div>
+          <div class="entry-section signal">
+            <div class="entry-section-tag">The signal</div>
+            <div class="entry-section-text">${esc(session.synthesis.signal)}</div>
+          </div>
+        </div>` : ''
+      }
+    </div>`;
+}
+
+function toggleTimeline() {
+  timelineOpen = !timelineOpen;
+  const list    = document.getElementById('timeline-list');
+  const chevron = document.getElementById('timeline-chevron');
+  list.classList.toggle('open', timelineOpen);
+  chevron.classList.toggle('open', timelineOpen);
+}
+
+function toggleTimelineEntry(el, idx) {
+  const exp = document.getElementById(`entry-exp-${idx}`);
+  if (!exp) return;
+  exp.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════
+   RENDERING: COMPARE VIEW
+═══════════════════════════════════════════════ */
+function openCompare() {
+  renderCompare();
+  go('sc-t-compare');
+}
+
+function renderCompare() {
+  const list = document.getElementById('compare-list');
+  const groupsToShow = groups.filter(g => latestClosedSession(g));
+
+  if (groupsToShow.length < 2) {
+    list.innerHTML = '<p style="color:var(--t-muted);font-size:13px;text-align:center;padding:32px 0;">Comparison available once 2 or more groups have closed sessions.</p>';
+    return;
+  }
+
+  // Sort by response rate descending for comparison
+  const sorted = [...groupsToShow].sort((a, b) => {
+    const synthA = latestClosedSynthesis(a);
+    const synthB = latestClosedSynthesis(b);
+    const rateA = synthA ? synthA.responseRate : 0;
+    const rateB = synthB ? synthB.responseRate : 0;
+    return rateB - rateA;
+  });
+
+  // Build participation comparison bar
+  const withSynth = sorted.filter(g => latestClosedSynthesis(g));
+  const maxRate   = withSynth.length ? Math.max(...withSynth.map(g => latestClosedSynthesis(g).responseRate)) : 100;
+
+  let html = '';
+
+  // ── PARTICIPATION OVERVIEW ──
+  html += `<div class="compare-section-header">Participation across groups</div>`;
+  html += `<div class="compare-participation-block">`;
+  sorted.forEach(g => {
+    const synth = latestClosedSynthesis(g);
+    const rate  = synth ? synth.responseRate : 0;
+    const barW  = synth ? Math.round((rate / 100) * 100) : 0;
+    const cls   = rate >= 76 ? 'strong' : rate >= 51 ? 'moderate' : rate >= 33 ? 'tentative' : 'none';
+    const clr   = cls === 'strong' ? 'var(--green)' : cls === 'moderate' ? 'var(--t-accent)' : cls === 'tentative' ? 'var(--amber)' : 'var(--t-muted)';
+    html += `
+      <div class="participation-row">
+        <div class="participation-name">${esc(truncate(g.name, 28))}</div>
+        <div class="participation-bar-wrap">
+          <div class="participation-bar" style="width:${barW}%;background:${clr};"></div>
+        </div>
+        <div class="participation-pct" style="color:${clr}">${synth ? rate + '%' : '—'}</div>
+      </div>`;
+  });
+  html += `</div>`;
+
+  // ── GROUP CARDS ──
+  html += `<div class="compare-section-header" style="margin-top:6px;">Latest signal per group</div>`;
+  html += sorted.map(g => renderCompareCard(g)).join('');
+
+  list.innerHTML = html;
+}
+
+function renderCompareCard(group) {
+  const session = latestClosedSession(group);
+  const synth   = latestClosedSynthesis(group);
+  const hasActive = group.currentSession && !group.currentSession.linkClosedAt;
+  const note    = hasActive ? '<span style="font-size:10px;color:var(--amber);margin-left:6px;">New session in progress</span>' : '';
+  const date    = session ? formatDate(session.startedAt) : '—';
+
+  if (!synth) {
+    return `
+      <div class="compare-card">
+        <div class="compare-card-header">
+          <div class="compare-group-name">${esc(group.name)}${note}</div>
+          <div class="compare-date">${date}</div>
+        </div>
+        <div class="compare-no-signal">Session closed below threshold — no signal generated</div>
+      </div>`;
+  }
+
+  const strengthClass = synth.register;
+  const strengthLabel = signalStrengthLabel(synth.register);
+
+  return `
+    <div class="compare-card">
+      <div class="compare-card-header">
+        <div class="compare-group-name">${esc(group.name)}${note}</div>
+        <div class="compare-date">${date} · <span class="signal-strength ${strengthClass}" style="font-size:10px;padding:2px 7px;">${strengthLabel.replace(' signal','')}</span></div>
+      </div>
+      <div class="compare-stats">
+        <div class="compare-stat">
+          <div class="stat-value">${synth.responseRate}%</div>
+          <div class="stat-label">Response rate</div>
+        </div>
+        <div class="compare-stat">
+          <div class="stat-value">${synth.responseCount}</div>
+          <div class="stat-label">Responded</div>
+        </div>
+        <div class="compare-stat">
+          <div class="stat-value">${session ? session.groupSize : '—'}</div>
+          <div class="stat-label">Group size</div>
+        </div>
+      </div>
+      <div class="compare-previews">
+        <div class="preview-row">
+          <div class="preview-dot working"></div>
+          <div class="preview-text"><span class="preview-label">Working:</span>${esc(truncate(synth.working, 110))}</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-dot friction"></div>
+          <div class="preview-text"><span class="preview-label">Friction:</span>${esc(truncate(synth.friction, 110))}</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-dot" style="background:var(--t-signal);"></div>
+          <div class="preview-text"><span class="preview-label">Signal:</span>${esc(truncate(synth.signal, 110))}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   TEXT TO SPEECH
+═══════════════════════════════════════════════ */
+function playSynth() {
+  if (!synthData || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const text = `What's working: ${synthData.working}. Where friction is: ${synthData.friction}. The signal: ${synthData.signal}`;
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.lang   = 'en-IN';
+  utt.rate   = 0.88;
+  window.speechSynthesis.speak(utt);
+}
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+function extractSection(text, tag) {
+  const m = text.match(new RegExp(`\\[${tag}\\]([\\s\\S]*?)(?=\\[|$)`, 'i'));
+  return m ? m[1].trim() : '';
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+}
+
+function esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function truncate(str, n) {
+  if (!str) return '';
+  return str.length > n ? str.slice(0, n) + '...' : str;
+}
+
+function formatDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function groupIcon(name) {
+  const icons = ['📚','🔬','📐','🎭','🌍','🎨','💻','🧪','📖','🏛️'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + hash * 31;
+  return icons[Math.abs(hash) % icons.length];
+}
+
+/* ═══════════════════════════════════════════════
+   MODAL HELPERS
+═══════════════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// Enter key in inputs
+document.getElementById('new-group-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createGroup();
+});
+document.getElementById('session-size').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startSession();
+});
+
+/* ═══════════════════════════════════════════════
+   STUDENT LINK ROUTING
+   Manus: this is where URL params are read to auto-route
+   a student to the correct group via their unique link.
+   Replace with: const sessionId = new URLSearchParams(window.location.search).get('session')
+   Then look up the session in Supabase and set studentGroupIdx accordingly.
+═══════════════════════════════════════════════ */
+(function checkStudentLink() {
+  const params    = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session');
+  if (sessionId) {
+    // Manus: look up session in Supabase by sessionId
+    // For demo: find matching session in local state
+    let found = false;
+    groups.forEach((g, i) => {
+      if (g.currentSession && g.currentSession.id === sessionId && !g.currentSession.linkClosedAt) {
+        studentGroupIdx = i;
+        found = true;
+      }
+    });
+    if (found) {
+      go('sc-s-open');
+    } else {
+      // Session closed or not found
+      go('sc-s-done');
+      document.querySelector('.done-h').textContent = 'This session has closed.';
+      document.querySelector('.done-sub').textContent = 'Your teacher will share a new link next time.';
+      document.querySelector('.done-icon').textContent = '🔒';
+    }
+  }
+})();
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+// Start on login screen
+// Manus: check Supabase auth session here — if logged in, go straight to home
+
+const now = Date.now();
+const DAY = 86400000;
+
+groups = [
+  // ─── GROUP 1: Year 11 English Lit
+  // 2 archived sessions + 1 active (Session 3)
+  // Shows full longitudinal timeline + active synthesis
+  {
+    id: 'g1',
+    name: 'Year 11 — English Lit',
+    sessions: [
+      // Session 1 — January
+      {
+        id: 's1a',
+        groupSize: 32,
+        startedAt: now - 65*DAY,
+        linkClosedAt: now - 64*DAY,
+        archivedAt: now - 63*DAY,
+        responses: new Array(21).fill({answers:[],submittedAt:now-64*DAY}),
+        synthesis: {
+          working: 'The close reading exercises are genuinely landing — students are engaging with the texts at a level that suggests real comprehension is building. The structured discussion format is also working well, creating enough safety for more tentative voices to participate.',
+          friction: 'The essay structure requirements are creating confusion, particularly around how to integrate quotations with analysis. There is a pattern of uncertainty about what enough analysis looks like — the bar feels unclear to much of the group.',
+          signal: 'This is a group that is engaged and willing, but is quietly carrying anxiety about whether they are doing things correctly. The subject feels interesting to them — the friction is procedural, not motivational. Confidence in the mechanics of literary essay writing is the thing most needed right now.',
+          generatedAt: now - 64*DAY,
+          responseCount: 21,
+          responseRate: 66,
+          register: 'moderate'
+        },
+        generating: false
+      },
+      // Session 2 — February
+      {
+        id: 's1b',
+        groupSize: 32,
+        startedAt: now - 32*DAY,
+        linkClosedAt: now - 31*DAY,
+        archivedAt: now - 30*DAY,
+        responses: new Array(26).fill({answers:[],submittedAt:now-31*DAY}),
+        synthesis: {
+          working: 'The essay scaffold introduced last month has shifted something — there is noticeably more confidence in the group around structuring arguments. The poetry unit is generating genuine interest, with several responses reflecting real personal engagement with the material.',
+          friction: 'Timed writing conditions are producing anxiety across a significant portion of the group. The pressure of the clock is interfering with the quality of thinking that students demonstrate in untimed work — this gap is being felt acutely.',
+          signal: 'The group is in a stronger place than last session. Procedural confidence has improved. What the room is now carrying is performance anxiety specifically — the gap between what they can do with time and what they produce under pressure. The subject itself continues to feel meaningful to them.',
+          generatedAt: now - 31*DAY,
+          responseCount: 26,
+          responseRate: 81,
+          register: 'strong'
+        },
+        generating: false
+      }
+    ],
+    // Session 3 — current, active, link open, synthesis firing
+    currentSession: {
+      id: 's1c',
+      groupSize: 32,
+      startedAt: now - 2*DAY,
+      linkClosedAt: null,
+      archivedAt: null,
+      responses: new Array(18).fill({answers:[],submittedAt:now-1*DAY}),
+      synthesis: {
+        working: 'The mock exam preparation sessions are being received well — students feel the practice papers are calibrating their understanding of what is expected. Peer discussion after unseen texts is cited by many as the most useful recent addition to the classroom rhythm.',
+        friction: 'Revision planning is a source of quiet stress — there is uncertainty about how to prioritise across the texts. Some students are finding the jump from class discussion to independent written analysis harder than expected.',
+        signal: 'The group is in exam-awareness mode and the emotional temperature has shifted accordingly. Engagement with the subject remains high — this is not disengagement, it is the particular weight of caring about an outcome. The room is carrying focused anxiety more than confusion. They want to do well and are uncertain they know how.',
+        generatedAt: now - 8*3600000,
+        responseCount: 18,
+        responseRate: 56,
+        register: 'moderate'
+      },
+      generating: false
+    }
+  },
+
+  // ─── GROUP 2: Year 9 Mathematics
+  // 1 archived session + 1 active (Session 2)
+  // Shows compare view working + early longitudinal
+  {
+    id: 'g2',
+    name: 'Year 9 — Mathematics',
+    sessions: [
+      // Session 1 — February, archived
+      {
+        id: 's2a',
+        groupSize: 28,
+        startedAt: now - 28*DAY,
+        linkClosedAt: now - 27*DAY,
+        archivedAt: now - 26*DAY,
+        responses: new Array(22).fill({answers:[],submittedAt:now-27*DAY}),
+        synthesis: {
+          working: 'Worked examples on the board are working well — students feel they understand the method when they can see it stepped through slowly. The recent introduction of small group problem-solving has also been well received, particularly by students who feel less confident asking questions publicly.',
+          friction: 'Word problems are a consistent point of difficulty — there is a pattern of students understanding the underlying maths but struggling to extract what is being asked. Algebra is also surfacing as an area where foundational gaps are creating obstacles to newer content.',
+          signal: 'This group has a reasonably positive relationship with the subject but is carrying some hidden fragility — particularly students who can follow in class but feel lost when working alone. The subject feels manageable to many, but the confidence is fragile and dependent on support being present.',
+          generatedAt: now - 27*DAY,
+          responseCount: 22,
+          responseRate: 79,
+          register: 'strong'
+        },
+        generating: false
+      }
+    ],
+    // Session 2 — current, link open, collecting
+    currentSession: {
+      id: 's2b',
+      groupSize: 28,
+      startedAt: now - 1*DAY,
+      linkClosedAt: null,
+      archivedAt: null,
+      responses: new Array(11).fill({answers:[],submittedAt:now-6*3600000}),
+      synthesis: {
+        working: 'The past paper practice introduced this month is being felt as genuinely useful — students feel more oriented to the format and expectations of the exam. Peer marking sessions are also landing well, with students reporting that seeing each others work is helping them understand the marking criteria.',
+        friction: 'Geometry and spatial reasoning topics are emerging as a new friction point this session. There is also a pattern of students feeling behind after absences — the pace of the curriculum leaves little room to catch up independently.',
+        signal: 'The group relationship with mathematics is maturing — there is more engagement with why methods work, not just how to apply them. However, there is a quiet undercurrent of anxiety about the exam that is growing as the term progresses. The subject feels increasingly high-stakes to them.',
+        generatedAt: now - 3*3600000,
+        responseCount: 11,
+        responseRate: 39,
+        register: 'tentative'
+      },
+      generating: false
+    }
+  },
+
+  // ─── GROUP 3: A-Level Physics
+  // No current session, 1 archived with no signal (below threshold)
+  // Shows honest "no signal" state
+  {
+    id: 'g3',
+    name: 'A-Level Physics — Batch B',
+    sessions: [
+      {
+        id: 's3a',
+        groupSize: 22,
+        startedAt: now - 20*DAY,
+        linkClosedAt: now - 19*DAY,
+        archivedAt: now - 18*DAY,
+        responses: new Array(6).fill({answers:[],submittedAt:now-19*DAY}),
+        synthesis: null,
+        generating: false
+      }
+    ],
+    currentSession: null
+  }
+];
+
+// Boot via initializeApp() below — do not go() directly here
+// renderHome() called after auth check in initializeApp()
+
+
+/* ═══════════════════════════════════════════════
+   INITIALIZATION & AUTH STATE
+═══════════════════════════════════════════════ */
+async function initializeApp() {
+  // Check if student is accessing via session link
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session');
+  
+  if (sessionId) {
+    try {
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .select('*, groups(*)')
+        .eq('id', sessionId)
+        .single();
+      
+      if (error || !session) {
+        // Session not found
+        document.querySelector('.done-h').textContent = 'Session not found.';
+        document.querySelector('.done-sub').textContent = 'Please check the link and try again.';
+        document.querySelector('.done-icon').textContent = '❌';
+        go('sc-s-done');
+        return;
+      }
+      
+      if (session.link_closed_at) {
+        // Session closed
+        document.querySelector('.done-h').textContent = 'This session has closed.';
+        document.querySelector('.done-sub').textContent = 'Your teacher will share a new link next time.';
+        document.querySelector('.done-icon').textContent = '🔒';
+        go('sc-s-done');
+        return;
+      }
+      
+      // Valid session — route to student flow
+      currentSessionFromLink = session;
+      // Find or create group in local state for student
+      studentGroupIdx = 0; // Simplified for student flow
+      go('sc-s-open');
+    } catch (e) {
+      console.error('Session lookup failed:', e);
+      go('sc-s-done');
+    }
+  } else {
+    // Teacher flow — check auth state
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        currentUser = session.user;
+        await loadGroupsFromSupabase();
+        go('sc-t-home');
+        renderHome();
+      } else {
+        go('sc-t-login');
+      }
+    });
+  }
+}
+
+// Load groups from Supabase
+async function loadGroupsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*, sessions(*, responses(*))')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    groups = data.map(transformSupabaseGroup);
+  } catch (e) {
+    console.error('Failed to load groups:', e);
+  }
+}
+
+// Transform Supabase data to app format
+function transformSupabaseGroup(dbGroup) {
+  return {
+    id: dbGroup.id,
+    name: dbGroup.name,
+    sessions: (dbGroup.sessions || []).map(s => ({
+      id: s.id,
+      groupSize: s.group_size,
+      startedAt: new Date(s.started_at).getTime(),
+      linkClosedAt: s.link_closed_at ? new Date(s.link_closed_at).getTime() : null,
+      archivedAt: s.archived_at ? new Date(s.archived_at).getTime() : null,
+      responses: s.responses || [],
+      synthesis: {
+        working: s.synthesis_working,
+        friction: s.synthesis_friction,
+        signal: s.synthesis_signal,
+        generatedAt: s.synthesis_generated_at,
+        responseCount: s.synthesis_response_count,
+        responseRate: s.synthesis_response_rate,
+        register: s.synthesis_register,
+        isFinal: s.synthesis_is_final
+      },
+      participationNote: s.participation_note,
+      generating: false
+    })),
+    currentSession: null // Will be set based on latest session state
+  };
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeApp);
+</script>
+
+<!-- 
+═══════════════════════════════════════════════════════════
+  MANUS HANDOFF NOTES
+═══════════════════════════════════════════════════════════
+
+SUPABASE TABLES NEEDED:
+
+1. groups
+   - id (uuid, primary key)
+   - teacher_id (uuid, references auth.users)
+   - name (text)
+   - created_at (timestamp)
+   - icon (text, optional)
+
+2. sessions
+   - id (uuid, primary key)
+   - group_id (uuid, references groups)
+   - group_size (integer)
+   - started_at (timestamp)
+   - link_closed_at (timestamp, nullable)
+   - archived_at (timestamp, nullable)
+   - synthesis_working (text, nullable)
+   - synthesis_friction (text, nullable)
+   - synthesis_signal (text, nullable)
+   - synthesis_generated_at (timestamp, nullable)
+   - synthesis_response_count (integer, nullable)
+   - synthesis_response_rate (integer, nullable)
+   - synthesis_register (text, nullable) — 'tentative'|'moderate'|'strong'
+
+3. responses
+   - id (uuid, primary key)
+   - session_id (uuid, references sessions)
+   - answers (jsonb) — [{q: string, a: string}]
+   - submitted_at (timestamp)
+   NOTE: No student identity ever stored here.
+
+ROW LEVEL SECURITY:
+- Teachers can only read/write their own groups and sessions
+- Responses are write-only from student side (no read access by anyone except via synthesis)
+- Synthesis is generated server-side (Edge Function) — not client-side in production
+
+ENVIRONMENT VARIABLES (Netlify):
+- CLAUDE_API_KEY — Anthropic API key (teacher enters this themselves in Netlify dashboard)
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+
+UNIQUE LINK FORMAT:
+- https://yourapp.netlify.app/respond?session={session.id}
+- Student opens this → reads session.id from URL → looks up in Supabase → routes to student flow
+- If session not found or link_closed_at is set → show "session closed" message
+
+AUTO-EXPIRY:
+- Supabase Edge Function runs daily cron
+- Sets link_closed_at on any session where started_at < NOW() - INTERVAL '7 days' AND link_closed_at IS NULL
+
+CLAUDE API CALLS (move to Edge Functions in production):
+- /api/generate-synthesis — called after link closes if threshold met
+- /api/generate-insight — called on demand when teacher taps "Want an actionable insight?"
+- /api/check-abuse — called before each student response is stored
+
+GOOGLE AUTH:
+- supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+- On return: supabase.auth.onAuthStateChange() → if session → renderHome()
+
+═══════════════════════════════════════════════════════════
+-->
+
+</body>
+</html>
