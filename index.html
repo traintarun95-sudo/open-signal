@@ -2179,7 +2179,7 @@ const AUTO_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Supabase initialization
 const SUPABASE_URL = 'https://thikdbmkmyrgxdycwytc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1amJpeG5nZGdzd2FraWRzdHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTczNzMsImV4cCI6MjA4OTEzMzM3M30.3-b3JCYuEs6p7yK-wZlP0by1837MzgX8lAvDalIFE5Q';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Current authenticated user
 let currentUser = null;
@@ -2382,7 +2382,7 @@ Provide three sections: WORKING, FRICTION, SIGNAL. Each 2-3 sentences.`;
       }
     }
     
-    const { error } = await supabase.from('sessions')
+    const { error } = await supabaseClient.from('sessions')
       .update(updateData)
       .eq('id', session.id);
     
@@ -2449,7 +2449,7 @@ function goHome() {
 ═══════════════════════════════════════════════ */
 async function loginWithGoogle() {
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin }
     });
@@ -2464,7 +2464,7 @@ async function loginWithPhone() {
   const phone = document.getElementById('phone-input').value.trim();
   if (!phone) return;
   try {
-    const { error } = await supabase.auth.signInWithOtp({ phone });
+    const { error } = await supabaseClient.auth.signInWithOtp({ phone });
     if (error) throw error;
     alert('OTP sent to ' + phone + '. Check your SMS.');
     // In production, show OTP verification screen
@@ -2573,7 +2573,7 @@ async function submitStudent() {
 
   // Save response to Supabase
   try {
-    const { error } = await supabase.from('responses').insert({
+    const { error } = await supabaseClient.from('responses').insert({
       session_id: session.id,
       answers: studentAnswers,
       submitted_at: new Date().toISOString()
@@ -2621,7 +2621,7 @@ async function createGroup() {
   err.style.display = 'none';
   
   try {
-    const { data, error } = await supabase.from('groups').insert({
+    const { data, error } = await supabaseClient.from('groups').insert({
       teacher_id: currentUser.id,
       name: name
     }).select().single();
@@ -2680,7 +2680,7 @@ async function startSession() {
   }
 
   try {
-    const { data, error } = await supabase.from('sessions').insert({
+    const { data, error } = await supabaseClient.from('sessions').insert({
       group_id: group.id,
       group_size: size,
       started_at: new Date().toISOString()
@@ -3931,7 +3931,7 @@ async function initializeApp() {
     }
   } else {
     // Teacher flow — check auth state
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         currentUser = session.user;
         await loadGroupsFromSupabase();
@@ -4054,8 +4054,8 @@ CLAUDE API CALLS (move to Edge Functions in production):
 - /api/check-abuse — called before each student response is stored
 
 GOOGLE AUTH:
-- supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
-- On return: supabase.auth.onAuthStateChange() → if session → renderHome()
+- supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+- On return: supabaseClient.auth.onAuthStateChange() → if session → renderHome()
 
 ═══════════════════════════════════════════════════════════
 -->
