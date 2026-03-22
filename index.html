@@ -2176,10 +2176,14 @@ const THRESHOLD_PCT  = 0.33; // 33% minimum response rate
 const MAX_GROUPS     = 5;
 const AUTO_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Supabase initialization
-const SUPABASE_URL = 'https://thikdbmkmyrgxdycwytc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWtkYm1rbXlyZ3hkeWN3eXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTc1NDAsImV4cCI6MjA4OTQ5MzU0MH0.RpbXwQtb9uqhtzVLmHFAkNGuZCVD_unyWTbnO1ZiCas';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase initialization — config loaded from server to avoid exposing keys
+let supabaseClient;
+
+async function initSupabase() {
+  const res = await fetch('/api/config');
+  const { supabaseUrl, supabaseAnonKey } = await res.json();
+  supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+}
 
 // Current authenticated user
 let currentUser = null;
@@ -3890,6 +3894,9 @@ groups = [
    INITIALIZATION & AUTH STATE
 ═══════════════════════════════════════════════ */
 async function initializeApp() {
+  // Initialize Supabase with server-side config
+  await initSupabase();
+
   // Check if student is accessing via session link
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session');
