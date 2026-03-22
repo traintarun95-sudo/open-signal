@@ -3,6 +3,24 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/config"
+  to = "/.netlify/functions/config"
   status = 200
+
+[[redirects]]
+  from = "/api/generate-synthesis"
+  to = "/.netlify/functions/generate-synthesis"
+  status = 200
+
+[[redirects]]
+  from = "/api/generate-insight"
+  to = "/.netlify/functions/generate-insight"
+  status = 200
+
+[[redirects]]
+  from = "/api/check-abuse"
+  to = "/.netlify/functions/check-abuse"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
