@@ -2611,7 +2611,7 @@ function openAddGroup() {
   setTimeout(() => document.getElementById('new-group-name').focus(), 300);
 }
 
-async function createGroup() {
+async async function createGroup() {
   const name = document.getElementById('new-group-name').value.trim();
   const language = document.getElementById('group-language-select').value;
   const err  = document.getElementById('add-group-err');
@@ -2662,7 +2662,7 @@ function openStartSession() {
   setTimeout(() => document.getElementById('session-size').focus(), 300);
 }
 
-function startSession() {
+async function startSession() {
   const sizeVal = document.getElementById('session-size').value.trim();
   const err     = document.getElementById('session-err');
   const size    = parseInt(sizeVal);
