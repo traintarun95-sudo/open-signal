@@ -2611,7 +2611,7 @@ function openAddGroup() {
   setTimeout(() => document.getElementById('new-group-name').focus(), 300);
 }
 
-async async function createGroup() {
+async function createGroup() {
   const name = document.getElementById('new-group-name').value.trim();
   const language = document.getElementById('group-language-select').value;
   const err  = document.getElementById('add-group-err');
